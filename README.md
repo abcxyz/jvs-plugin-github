@@ -1,1 +1,1 @@
-# jvs-plugin-github
+# jvs-plugin-github-dev
