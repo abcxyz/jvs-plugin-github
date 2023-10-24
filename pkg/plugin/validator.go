@@ -45,9 +45,9 @@ type ExchangeResponse struct {
 	AccessToken string `json:"token"`
 }
 
-// issueInfo contains the required attribute parsed from
+// pluginGithubIssue contains the required attribute parsed from
 // the issue URL.
-type issueInfo struct {
+type pluginGithubIssue struct {
 	Owner       string
 	RepoName    string
 	IssueNumber int
@@ -95,8 +95,8 @@ func (v *Validator) MatchIssue(ctx context.Context, issueURL string, opts ...git
 }
 
 // validateIssue verifies if the issue exists and the issue is open.
-func (v *Validator) validateIssue(ctx context.Context, info *issueInfo) error {
-	issue, err := v.getGithubIssue(ctx, info)
+func (v *Validator) validateIssue(ctx context.Context, pi *pluginGithubIssue) error {
+	issue, err := v.getGithubIssue(ctx, pi)
 	if err != nil {
 		return fmt.Errorf("failed to get issue info: %w", err)
 	}
@@ -107,11 +107,11 @@ func (v *Validator) validateIssue(ctx context.Context, info *issueInfo) error {
 }
 
 // getGithubIssue gets the provided issue's info from github api.
-func (v *Validator) getGithubIssue(ctx context.Context, info *issueInfo) (*github.Issue, error) {
+func (v *Validator) getGithubIssue(ctx context.Context, pi *pluginGithubIssue) (*github.Issue, error) {
 	if v.fakeGithubIssue != nil {
 		return v.fakeGithubIssue, nil
 	}
-	issue, _, err := v.client.Issues.Get(ctx, info.Owner, info.RepoName, info.IssueNumber)
+	issue, _, err := v.client.Issues.Get(ctx, pi.Owner, pi.RepoName, pi.IssueNumber)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get issue: %w", err)
 	}
@@ -145,7 +145,7 @@ func (v *Validator) getAccessToken(ctx context.Context, cfg *PluginConfig, pk *r
 }
 
 // parseGithubIssue parses issue info from Issue URL.
-func parseIssueInfoFromURL(issueURL string) (*issueInfo, error) {
+func parseIssueInfoFromURL(issueURL string) (*pluginGithubIssue, error) {
 	u, err := url.Parse(issueURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse provided issue url: %w", err)
@@ -160,7 +160,7 @@ func parseIssueInfoFromURL(issueURL string) (*issueInfo, error) {
 		return nil, fmt.Errorf("failed to convert issueNumber %s to int: %w", arr[4], err)
 	}
 
-	return &issueInfo{
+	return &pluginGithubIssue{
 		Owner:       arr[1],
 		RepoName:    arr[2],
 		IssueNumber: issueNumber,
