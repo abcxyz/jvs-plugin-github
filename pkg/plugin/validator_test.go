@@ -32,14 +32,6 @@ import (
 	"github.com/google/go-github/v55/github"
 )
 
-func testGenerateIssueInfo(tb testing.TB, state string) *github.Issue {
-	tb.Helper()
-	helperStateString := state
-	return &github.Issue{
-		State: &helperStateString,
-	}
-}
-
 func TestCreateValidator(t *testing.T) {
 	t.Parallel()
 
@@ -53,17 +45,17 @@ func TestCreateValidator(t *testing.T) {
 		{
 			name: "success",
 			cfg: &PluginConfig{
-				GithubAppID:             "test-github-id",
-				GithubAppInstallationID: "test-install-id",
-				GithubAppPrivateKeyPEM:  testPrivateKey,
+				GitHubAppID:             "test-github-id",
+				GitHubAppInstallationID: "test-install-id",
+				GitHubAppPrivateKeyPEM:  testPrivateKey,
 			},
 		},
 		{
 			name: "invalid_pem",
 			cfg: &PluginConfig{
-				GithubAppID:             "test-github-id",
-				GithubAppInstallationID: "test-install-id",
-				GithubAppPrivateKeyPEM:  "abcde",
+				GitHubAppID:             "test-github-id",
+				GitHubAppInstallationID: "test-install-id",
+				GitHubAppPrivateKeyPEM:  "abcde",
 			},
 			wantErrSubstr: "failed to decode PEM formated key",
 		},
@@ -100,9 +92,9 @@ func TestMatchIssue(t *testing.T) {
 			name:     "success",
 			issueURL: "https://github.com/test-owner/test-repo/issues/1",
 			cfg: &PluginConfig{
-				GithubAppID:             "test-github-id",
-				GithubAppInstallationID: "test-install-id",
-				GithubAppPrivateKeyPEM:  testPrivateKey,
+				GitHubAppID:             "test-github-id",
+				GitHubAppInstallationID: "test-install-id",
+				GitHubAppPrivateKeyPEM:  testPrivateKey,
 			},
 			fakeTokenServerResqCode: http.StatusCreated,
 			issueState:              "open",
@@ -111,9 +103,9 @@ func TestMatchIssue(t *testing.T) {
 			name:     "invalid_issue_url",
 			issueURL: "https://github.com/test-owner/test-repo",
 			cfg: &PluginConfig{
-				GithubAppID:             "test-github-id",
-				GithubAppInstallationID: "test-install-id",
-				GithubAppPrivateKeyPEM:  testPrivateKey,
+				GitHubAppID:             "test-github-id",
+				GitHubAppInstallationID: "test-install-id",
+				GitHubAppPrivateKeyPEM:  testPrivateKey,
 			},
 			fakeTokenServerResqCode: http.StatusCreated,
 			wantErrSubstr:           "invalid issue url",
@@ -122,9 +114,9 @@ func TestMatchIssue(t *testing.T) {
 			name:     "issue_not_int",
 			issueURL: "https://github.com/test-owner/test-repo/issues/abc",
 			cfg: &PluginConfig{
-				GithubAppID:             "test-github-id",
-				GithubAppInstallationID: "test-install-id",
-				GithubAppPrivateKeyPEM:  testPrivateKey,
+				GitHubAppID:             "test-github-id",
+				GitHubAppInstallationID: "test-install-id",
+				GitHubAppPrivateKeyPEM:  testPrivateKey,
 			},
 			fakeTokenServerResqCode: http.StatusCreated,
 			wantErrSubstr:           "failed to convert issueNumber",
@@ -133,9 +125,9 @@ func TestMatchIssue(t *testing.T) {
 			name:     "unauthorized",
 			issueURL: "https://github.com/test-owner/test-repo/issues/1",
 			cfg: &PluginConfig{
-				GithubAppID:             "test-github-id",
-				GithubAppInstallationID: "test-install-id",
-				GithubAppPrivateKeyPEM:  testPrivateKey,
+				GitHubAppID:             "test-github-id",
+				GitHubAppInstallationID: "test-install-id",
+				GitHubAppPrivateKeyPEM:  testPrivateKey,
 			},
 			fakeTokenServerResqCode: http.StatusUnauthorized,
 			wantErrSubstr:           "failed to get access token",
@@ -144,9 +136,9 @@ func TestMatchIssue(t *testing.T) {
 			name:     "issue_not_open",
 			issueURL: "https://github.com/test-owner/test-repo/issues/1",
 			cfg: &PluginConfig{
-				GithubAppID:             "test-github-id",
-				GithubAppInstallationID: "test-install-id",
-				GithubAppPrivateKeyPEM:  testPrivateKey,
+				GitHubAppID:             "test-github-id",
+				GitHubAppInstallationID: "test-install-id",
+				GitHubAppPrivateKeyPEM:  testPrivateKey,
 			},
 			fakeTokenServerResqCode: http.StatusCreated,
 			issueState:              "closed",
@@ -178,10 +170,11 @@ func TestMatchIssue(t *testing.T) {
 			}))
 
 			opts := []githubapp.ConfigOption{githubapp.WithAccessTokenURLPattern(fakeTokenServer.URL + "/%s/access_tokens")}
-			validator, err := NewValidator(tc.cfg, WithFakeGithubIssue(testGenerateIssueInfo(t, tc.issueState)))
+			validator, err := NewValidator(tc.cfg)
 			if err != nil {
 				t.Fatalf("failed to create validator: %v", err)
 			}
+			validator.fakeGithubIssue = testGenerateIssueInfo(t, tc.issueState)
 			gotErr := validator.MatchIssue(ctx, tc.issueURL, opts...)
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
@@ -208,4 +201,12 @@ func testGeneratePrivateKeyString(tb testing.TB) string {
 		tb.Fatalf("Error encoding privateKeyPEM: %v", err)
 	}
 	return buf.String()
+}
+
+func testGenerateIssueInfo(tb testing.TB, state string) *github.Issue {
+	tb.Helper()
+	helperStateString := state
+	return &github.Issue{
+		State: &helperStateString,
+	}
 }

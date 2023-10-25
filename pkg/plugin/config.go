@@ -15,8 +15,10 @@
 // Package plugin provides the implementation of the JVS plugin interface.
 package plugin
 
+// PluginConfig defines the set over environment variables required
+// for running the plugin.
 type PluginConfig struct {
-	GithubAppID             string `env:"GITHUB_APP_ID,required"`
-	GithubAppInstallationID string `env:"GITHUB_APP_INSTALLATION_ID,required"`
-	GithubAppPrivateKeyPEM  string `env:"GITHUB_APP_PRIVATE_KEY_PEM,required"`
+	GitHubAppID             string `env:"GITHUB_APP_ID,required"`
+	GitHubAppInstallationID string `env:"GITHUB_APP_INSTALLATION_ID,required"`
+	GitHubAppPrivateKeyPEM  string `env:"GITHUB_APP_PRIVATE_KEY_PEM,required"`
 }

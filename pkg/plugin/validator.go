@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package plugin provides the implementation of the JVS plugin interface.
 package plugin
 
 import (
@@ -30,6 +29,7 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwk"
 )
 
+// Validator validates github issue against validation criteria.
 type Validator struct {
 	cfg        *PluginConfig
 	decodedPem *rsa.PrivateKey
@@ -53,17 +53,9 @@ type pluginGithubIssue struct {
 	IssueNumber int
 }
 
-type ValidatorOption func(*Validator)
-
-func WithFakeGithubIssue(i *github.Issue) ValidatorOption {
-	return func(v *Validator) {
-		v.fakeGithubIssue = i
-	}
-}
-
 // NewValidator creates a validator.
-func NewValidator(cfg *PluginConfig, opts ...ValidatorOption) (*Validator, error) {
-	pk, err := readPrivateKey(cfg.GithubAppPrivateKeyPEM)
+func NewValidator(cfg *PluginConfig) (*Validator, error) {
+	pk, err := readPrivateKey(cfg.GitHubAppPrivateKeyPEM)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read private key: %w", err)
 	}
@@ -71,9 +63,6 @@ func NewValidator(cfg *PluginConfig, opts ...ValidatorOption) (*Validator, error
 		cfg:        cfg,
 		decodedPem: pk,
 		client:     github.NewClient(nil),
-	}
-	for _, opt := range opts {
-		opt(&v)
 	}
 	return &v, nil
 }
@@ -123,7 +112,7 @@ func (v *Validator) getGithubIssue(ctx context.Context, pi *pluginGithubIssue) (
 func (v *Validator) getAccessToken(ctx context.Context, cfg *PluginConfig, pk *rsa.PrivateKey, repoName string, opts []githubapp.ConfigOption) (string, error) {
 	opts = append(opts, githubapp.WithJWTTokenCaching(1*time.Minute))
 
-	ghCfg := githubapp.NewConfig(cfg.GithubAppID, cfg.GithubAppInstallationID, pk, opts...)
+	ghCfg := githubapp.NewConfig(cfg.GitHubAppID, cfg.GitHubAppInstallationID, pk, opts...)
 	githubApp := githubapp.New(ghCfg)
 
 	tr := githubapp.TokenRequest{
