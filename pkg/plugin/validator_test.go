@@ -19,13 +19,16 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/abcxyz/pkg/githubapp"
 	"github.com/abcxyz/pkg/testutil"
@@ -35,7 +38,7 @@ import (
 func TestCreateValidator(t *testing.T) {
 	t.Parallel()
 
-	testPrivateKey := testGeneratePrivateKeyString(t)
+	testPrivateKeyString, _ := testGeneratePrivateKey(t)
 
 	cases := []struct {
 		name          string
@@ -47,7 +50,7 @@ func TestCreateValidator(t *testing.T) {
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKey,
+				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
 			},
 		},
 		{
@@ -78,13 +81,13 @@ func TestCreateValidator(t *testing.T) {
 func TestMatchIssue(t *testing.T) {
 	t.Parallel()
 
-	testPrivateKey := testGeneratePrivateKeyString(t)
+	testPrivateKeyString, testPrivateKey := testGeneratePrivateKey(t)
 
 	cases := []struct {
 		name                    string
 		cfg                     *PluginConfig
 		issueURL                string
-		issueState              string
+		issueBytes              []byte
 		fakeTokenServerResqCode int
 		wantErrSubstr           string
 	}{
@@ -94,10 +97,10 @@ func TestMatchIssue(t *testing.T) {
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKey,
+				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
 			},
 			fakeTokenServerResqCode: http.StatusCreated,
-			issueState:              "open",
+			issueBytes:              []byte(`{"state": "open"}`),
 		},
 		{
 			name:     "invalid_issue_url",
@@ -105,10 +108,11 @@ func TestMatchIssue(t *testing.T) {
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKey,
+				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
 			},
 			fakeTokenServerResqCode: http.StatusCreated,
 			wantErrSubstr:           "invalid issue url",
+			issueBytes:              []byte(`{"state": "open"}`),
 		},
 		{
 			name:     "issue_not_int",
@@ -116,10 +120,11 @@ func TestMatchIssue(t *testing.T) {
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKey,
+				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
 			},
 			fakeTokenServerResqCode: http.StatusCreated,
-			wantErrSubstr:           "failed to convert issueNumber",
+			wantErrSubstr:           "invalid issue url, issueURL doesn't match pattern",
+			issueBytes:              []byte(`{"state": "open"}`),
 		},
 		{
 			name:     "unauthorized",
@@ -127,10 +132,11 @@ func TestMatchIssue(t *testing.T) {
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKey,
+				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
 			},
 			fakeTokenServerResqCode: http.StatusUnauthorized,
 			wantErrSubstr:           "failed to get access token",
+			issueBytes:              []byte(`{"state": "open"}`),
 		},
 		{
 			name:     "issue_not_open",
@@ -138,11 +144,11 @@ func TestMatchIssue(t *testing.T) {
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKey,
+				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
 			},
 			fakeTokenServerResqCode: http.StatusCreated,
-			issueState:              "closed",
 			wantErrSubstr:           "issue is in state: closed",
+			issueBytes:              []byte(`{"state": "closed"}`),
 		},
 	}
 
@@ -169,13 +175,20 @@ func TestMatchIssue(t *testing.T) {
 				fmt.Fprintf(w, `{"token":"this-is-the-token-from-github"}`)
 			}))
 
-			opts := []githubapp.ConfigOption{githubapp.WithAccessTokenURLPattern(fakeTokenServer.URL + "/%s/access_tokens")}
-			validator, err := NewValidator(tc.cfg)
+			hc, done := newTestServer(testHandleIssueReturn(t, tc.issueBytes))
+			defer done()
+			ghAppOpts := []githubapp.ConfigOption{
+				githubapp.WithJWTTokenCaching(1 * time.Minute),
+				githubapp.WithAccessTokenURLPattern(fakeTokenServer.URL + "/%s/access_tokens"),
+			}
+			testGHAppCfg := githubapp.NewConfig(tc.cfg.GitHubAppID, tc.cfg.GitHubAppInstallationID, testPrivateKey, ghAppOpts...)
+			testGituhbApp := githubapp.New(testGHAppCfg)
+
+			validator, err := NewValidator(tc.cfg, WithGitHubClient(github.NewClient(hc)), WithGithubApp(testGituhbApp))
 			if err != nil {
 				t.Fatalf("failed to create validator: %v", err)
 			}
-			validator.fakeGithubIssue = testGenerateIssueInfo(t, tc.issueState)
-			gotErr := validator.MatchIssue(ctx, tc.issueURL, opts...)
+			gotErr := validator.MatchIssue(ctx, tc.issueURL)
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
 			}
@@ -183,7 +196,7 @@ func TestMatchIssue(t *testing.T) {
 	}
 }
 
-func testGeneratePrivateKeyString(tb testing.TB) string {
+func testGeneratePrivateKey(tb testing.TB) (string, *rsa.PrivateKey) {
 	tb.Helper()
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -200,13 +213,40 @@ func testGeneratePrivateKeyString(tb testing.TB) string {
 	if err != nil {
 		tb.Fatalf("Error encoding privateKeyPEM: %v", err)
 	}
-	return buf.String()
+	return buf.String(), privateKey
 }
 
-func testGenerateIssueInfo(tb testing.TB, state string) *github.Issue {
+// newTestServer creates a fake http client.
+func newTestServer(handler func(w http.ResponseWriter, r *http.Request)) (*http.Client, func()) {
+	ts := httptest.NewTLSServer(http.HandlerFunc(handler))
+	// Need insecure TLS option for testing.
+	// #nosec G402
+	tlsConf := &tls.Config{InsecureSkipVerify: true}
+	tr := &http.Transport{
+		TLSClientConfig: tlsConf,
+		DialTLS: func(netw, addr string) (net.Conn, error) {
+			return tls.Dial("tcp", ts.Listener.Addr().String(), tlsConf)
+		},
+	}
+	return &http.Client{Transport: tr}, func() {
+		tr.CloseIdleConnections()
+		ts.Close()
+	}
+}
+
+// testHandleIssueReturn returns a fake http func that writes the data in http response.
+func testHandleIssueReturn(tb testing.TB, data []byte) func(w http.ResponseWriter, r *http.Request) {
 	tb.Helper()
-	helperStateString := state
-	return &github.Issue{
-		State: &helperStateString,
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println(r.URL.Path)
+		switch r.URL.Path {
+		case "/repos/test-owner/test-repo/issues/1":
+			_, err := w.Write(data)
+			if err != nil {
+				tb.Fatalf("failed to write response for object info: %v", err)
+			}
+		default:
+			http.Error(w, "injected error", http.StatusNotFound)
+		}
 	}
 }

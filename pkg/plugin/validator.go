@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -29,14 +30,16 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwk"
 )
 
+const (
+	issueURLPatternRegExp = `^https:\/\/github.com\/([a-zA-Z0-9-]*)\/[a-zA-Z0-9-]*\/issues\/[0-9]+$`
+)
+
 // Validator validates github issue against validation criteria.
 type Validator struct {
 	cfg        *PluginConfig
 	decodedPem *rsa.PrivateKey
 	client     *github.Client
-
-	// for testing only
-	fakeGithubIssue *github.Issue
+	githubApp  *githubapp.GitHubApp
 }
 
 // ExchangeResponse is the GitHub API response of requesting an access token
@@ -53,8 +56,22 @@ type pluginGithubIssue struct {
 	IssueNumber int
 }
 
+type ValidatorOption func(*Validator)
+
+func WithGitHubClient(c *github.Client) ValidatorOption {
+	return func(v *Validator) {
+		v.client = c
+	}
+}
+
+func WithGithubApp(c *githubapp.GitHubApp) ValidatorOption {
+	return func(v *Validator) {
+		v.githubApp = c
+	}
+}
+
 // NewValidator creates a validator.
-func NewValidator(cfg *PluginConfig) (*Validator, error) {
+func NewValidator(cfg *PluginConfig, opts ...ValidatorOption) (*Validator, error) {
 	pk, err := readPrivateKey(cfg.GitHubAppPrivateKeyPEM)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read private key: %w", err)
@@ -62,7 +79,16 @@ func NewValidator(cfg *PluginConfig) (*Validator, error) {
 	v := Validator{
 		cfg:        cfg,
 		decodedPem: pk,
-		client:     github.NewClient(nil),
+	}
+	for _, opt := range opts {
+		opt(&v)
+	}
+	if v.client == nil {
+		v.client = github.NewClient(nil)
+	}
+	if v.githubApp == nil {
+		ghCfg := githubapp.NewConfig(v.cfg.GitHubAppID, v.cfg.GitHubAppInstallationID, v.decodedPem, githubapp.WithJWTTokenCaching(1*time.Minute))
+		v.githubApp = githubapp.New(ghCfg)
 	}
 	return &v, nil
 }
@@ -74,7 +100,7 @@ func (v *Validator) MatchIssue(ctx context.Context, issueURL string, opts ...git
 		return fmt.Errorf("failed to parse issueURL: %w", err)
 	}
 
-	t, err := v.getAccessToken(ctx, v.cfg, v.decodedPem, info.RepoName, opts)
+	t, err := v.getAccessToken(ctx, info.RepoName)
 	if err != nil {
 		return fmt.Errorf("failed to get access token: %w", err)
 	}
@@ -97,9 +123,6 @@ func (v *Validator) validateIssue(ctx context.Context, pi *pluginGithubIssue) er
 
 // getGithubIssue gets the provided issue's info from github api.
 func (v *Validator) getGithubIssue(ctx context.Context, pi *pluginGithubIssue) (*github.Issue, error) {
-	if v.fakeGithubIssue != nil {
-		return v.fakeGithubIssue, nil
-	}
 	issue, _, err := v.client.Issues.Get(ctx, pi.Owner, pi.RepoName, pi.IssueNumber)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get issue: %w", err)
@@ -109,12 +132,7 @@ func (v *Validator) getGithubIssue(ctx context.Context, pi *pluginGithubIssue) (
 
 // getAccessToken gets an access token with issue read permission to the repo
 // which contains the issue.
-func (v *Validator) getAccessToken(ctx context.Context, cfg *PluginConfig, pk *rsa.PrivateKey, repoName string, opts []githubapp.ConfigOption) (string, error) {
-	opts = append(opts, githubapp.WithJWTTokenCaching(1*time.Minute))
-
-	ghCfg := githubapp.NewConfig(cfg.GitHubAppID, cfg.GitHubAppInstallationID, pk, opts...)
-	githubApp := githubapp.New(ghCfg)
-
+func (v *Validator) getAccessToken(ctx context.Context, repoName string) (string, error) {
 	tr := githubapp.TokenRequest{
 		Repositories: []string{repoName},
 		Permissions: map[string]string{
@@ -122,7 +140,7 @@ func (v *Validator) getAccessToken(ctx context.Context, cfg *PluginConfig, pk *r
 		},
 	}
 	var tokenResp ExchangeResponse
-	resp, err := githubApp.AccessToken(ctx, &tr)
+	resp, err := v.githubApp.AccessToken(ctx, &tr)
 	if err != nil {
 		return "", fmt.Errorf("failed to get access token: %w", err)
 	}
@@ -135,14 +153,14 @@ func (v *Validator) getAccessToken(ctx context.Context, cfg *PluginConfig, pk *r
 
 // parseGithubIssue parses issue info from Issue URL.
 func parseIssueInfoFromURL(issueURL string) (*pluginGithubIssue, error) {
+	if match, _ := regexp.MatchString(issueURLPatternRegExp, issueURL); !match {
+		return nil, fmt.Errorf("invalid issue url, issueURL doesn't match pattern: %s", issueURLPatternRegExp)
+	}
 	u, err := url.Parse(issueURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse provided issue url: %w", err)
 	}
 	arr := strings.Split(u.Path, "/")
-	if len(arr) != 5 || arr[3] != "issues" {
-		return nil, fmt.Errorf("invalid issue url, please check your issues url is in format https://github.com/<org_name>/<repo_id>/issues/<issue_number>")
-	}
 
 	issueNumber, err := strconv.Atoi(arr[4])
 	if err != nil {

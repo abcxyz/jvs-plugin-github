@@ -18,7 +18,10 @@ package plugin
 // PluginConfig defines the set over environment variables required
 // for running the plugin.
 type PluginConfig struct {
-	GitHubAppID             string `env:"GITHUB_APP_ID,required"`
+	// ID of the GitHub APP we use to authenticate.
+	GitHubAppID string `env:"GITHUB_APP_ID,required"`
+	// Installation ID of the github app.
 	GitHubAppInstallationID string `env:"GITHUB_APP_INSTALLATION_ID,required"`
-	GitHubAppPrivateKeyPEM  string `env:"GITHUB_APP_PRIVATE_KEY_PEM,required"`
+	// The private Key PEM obtained for github app.
+	GitHubAppPrivateKeyPEM string `env:"GITHUB_APP_PRIVATE_KEY_PEM,required"`
 }
