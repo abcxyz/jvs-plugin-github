@@ -131,7 +131,9 @@ func TestMatchIssue(t *testing.T) {
 				w.WriteHeader(tc.fakeTokenServerResqCode)
 				fmt.Fprintf(w, `{"token":"this-is-the-token-from-github"}`)
 			}))
-			defer fakeTokenServer.Close()
+			t.Cleanup(func() {
+				fakeTokenServer.Close()
+			})
 
 			hc := newTestServer(t, testHandleIssueReturn(t, tc.issueBytes))
 			testGitHubClient := github.NewClient(hc)
