@@ -133,8 +133,7 @@ func TestMatchIssue(t *testing.T) {
 			}))
 			defer fakeTokenServer.Close()
 
-			hc, done := newTestServer(testHandleIssueReturn(t, tc.issueBytes))
-			defer done()
+			hc := newTestServer(t, testHandleIssueReturn(t, tc.issueBytes))
 			testGitHubClient := github.NewClient(hc)
 
 			ghAppOpts := []githubapp.ConfigOption{
@@ -175,7 +174,9 @@ func testGeneratePrivateKey(tb testing.TB) (string, *rsa.PrivateKey) {
 }
 
 // newTestServer creates a fake http client.
-func newTestServer(handler func(w http.ResponseWriter, r *http.Request)) (*http.Client, func()) {
+func newTestServer(t *testing.T, handler func(w http.ResponseWriter, r *http.Request)) *http.Client {
+	t.Helper()
+
 	ts := httptest.NewTLSServer(http.HandlerFunc(handler))
 	// Need insecure TLS option for testing.
 	// #nosec G402
@@ -186,17 +187,18 @@ func newTestServer(handler func(w http.ResponseWriter, r *http.Request)) (*http.
 			return tls.Dial("tcp", ts.Listener.Addr().String(), tlsConf)
 		},
 	}
-	return &http.Client{Transport: tr}, func() {
+
+	t.Cleanup(func() {
 		tr.CloseIdleConnections()
 		ts.Close()
-	}
+	})
+	return &http.Client{Transport: tr}
 }
 
 // testHandleIssueReturn returns a fake http func that writes the data in http response.
 func testHandleIssueReturn(tb testing.TB, data []byte) func(w http.ResponseWriter, r *http.Request) {
 	tb.Helper()
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(r.URL.Path)
 		switch r.URL.Path {
 		case "/repos/test-owner/test-repo/issues/1":
 			if _, err := w.Write(data); err != nil {
