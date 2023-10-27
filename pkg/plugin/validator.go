@@ -16,18 +16,15 @@ package plugin
 
 import (
 	"context"
-	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/abcxyz/pkg/githubapp"
 	"github.com/google/go-github/v55/github"
-	"github.com/lestrrat-go/jwx/v2/jwk"
 )
 
 const (
@@ -36,10 +33,8 @@ const (
 
 // Validator validates github issue against validation criteria.
 type Validator struct {
-	cfg        *PluginConfig
-	decodedPem *rsa.PrivateKey
-	client     *github.Client
-	githubApp  *githubapp.GitHubApp
+	client    *github.Client
+	githubApp *githubapp.GitHubApp
 }
 
 // ExchangeResponse is the GitHub API response of requesting an access token
@@ -56,41 +51,12 @@ type pluginGithubIssue struct {
 	IssueNumber int
 }
 
-type ValidatorOption func(*Validator)
-
-func WithGitHubClient(c *github.Client) ValidatorOption {
-	return func(v *Validator) {
-		v.client = c
-	}
-}
-
-func WithGithubApp(c *githubapp.GitHubApp) ValidatorOption {
-	return func(v *Validator) {
-		v.githubApp = c
-	}
-}
-
 // NewValidator creates a validator.
-func NewValidator(cfg *PluginConfig, opts ...ValidatorOption) (*Validator, error) {
-	pk, err := readPrivateKey(cfg.GitHubAppPrivateKeyPEM)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read private key: %w", err)
+func NewValidator(ghClinet *github.Client, ghApp *githubapp.GitHubApp) *Validator {
+	return &Validator{
+		client:    ghClinet,
+		githubApp: ghApp,
 	}
-	v := Validator{
-		cfg:        cfg,
-		decodedPem: pk,
-	}
-	for _, opt := range opts {
-		opt(&v)
-	}
-	if v.client == nil {
-		v.client = github.NewClient(nil)
-	}
-	if v.githubApp == nil {
-		ghCfg := githubapp.NewConfig(v.cfg.GitHubAppID, v.cfg.GitHubAppInstallationID, v.decodedPem, githubapp.WithJWTTokenCaching(1*time.Minute))
-		v.githubApp = githubapp.New(ghCfg)
-	}
-	return &v, nil
 }
 
 // MatchIssue parses issue info from provided issueURL and validate if the issue is valid.
@@ -111,7 +77,7 @@ func (v *Validator) MatchIssue(ctx context.Context, issueURL string, opts ...git
 
 // validateIssue verifies if the issue exists and the issue is open.
 func (v *Validator) validateIssue(ctx context.Context, pi *pluginGithubIssue) error {
-	issue, err := v.getGithubIssue(ctx, pi)
+	issue, _, err := v.client.Issues.Get(ctx, pi.Owner, pi.RepoName, pi.IssueNumber)
 	if err != nil {
 		return fmt.Errorf("failed to get issue info: %w", err)
 	}
@@ -121,30 +87,22 @@ func (v *Validator) validateIssue(ctx context.Context, pi *pluginGithubIssue) er
 	return nil
 }
 
-// getGithubIssue gets the provided issue's info from github api.
-func (v *Validator) getGithubIssue(ctx context.Context, pi *pluginGithubIssue) (*github.Issue, error) {
-	issue, _, err := v.client.Issues.Get(ctx, pi.Owner, pi.RepoName, pi.IssueNumber)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get issue: %w", err)
-	}
-	return issue, nil
-}
-
 // getAccessToken gets an access token with issue read permission to the repo
 // which contains the issue.
 func (v *Validator) getAccessToken(ctx context.Context, repoName string) (string, error) {
-	tr := githubapp.TokenRequest{
+	tr := &githubapp.TokenRequest{
 		Repositories: []string{repoName},
 		Permissions: map[string]string{
 			"issues": "read",
 		},
 	}
-	var tokenResp ExchangeResponse
-	resp, err := v.githubApp.AccessToken(ctx, &tr)
+
+	resp, err := v.githubApp.AccessToken(ctx, tr)
 	if err != nil {
 		return "", fmt.Errorf("failed to get access token: %w", err)
 	}
 
+	var tokenResp ExchangeResponse
 	if err := json.Unmarshal([]byte(resp), &tokenResp); err != nil {
 		return "", fmt.Errorf("error unmarshal resp: %w", err)
 	}
@@ -160,8 +118,9 @@ func parseIssueInfoFromURL(issueURL string) (*pluginGithubIssue, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse provided issue url: %w", err)
 	}
-	arr := strings.Split(u.Path, "/")
 
+	arr := strings.Split(u.Path, "/")
+	// len(arr) is not checked here as regexp.MatchString already covers this.
 	issueNumber, err := strconv.Atoi(arr[4])
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert issueNumber %s to int: %w", arr[4], err)
@@ -172,18 +131,4 @@ func parseIssueInfoFromURL(issueURL string) (*pluginGithubIssue, error) {
 		RepoName:    arr[2],
 		IssueNumber: issueNumber,
 	}, nil
-}
-
-// readPrivateKey reads a RSA encrypted private key using PEM encoding as a string
-// and returns an RSA key.
-func readPrivateKey(rsaPrivateKeyPEM string) (*rsa.PrivateKey, error) {
-	parsedKey, _, err := jwk.DecodePEM([]byte(rsaPrivateKeyPEM))
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode PEM formated key:  %w", err)
-	}
-	privateKey, ok := parsedKey.(*rsa.PrivateKey)
-	if !ok {
-		return nil, fmt.Errorf("failed to convert to *rsa.PrivateKey (got %T)", parsedKey)
-	}
-	return privateKey, nil
 }

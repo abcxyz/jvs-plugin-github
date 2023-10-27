@@ -35,49 +35,6 @@ import (
 	"github.com/google/go-github/v55/github"
 )
 
-func TestCreateValidator(t *testing.T) {
-	t.Parallel()
-
-	testPrivateKeyString, _ := testGeneratePrivateKey(t)
-
-	cases := []struct {
-		name          string
-		cfg           *PluginConfig
-		wantErrSubstr string
-	}{
-		{
-			name: "success",
-			cfg: &PluginConfig{
-				GitHubAppID:             "test-github-id",
-				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
-			},
-		},
-		{
-			name: "invalid_pem",
-			cfg: &PluginConfig{
-				GitHubAppID:             "test-github-id",
-				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  "abcde",
-			},
-			wantErrSubstr: "failed to decode PEM formated key",
-		},
-	}
-
-	for _, tc := range cases {
-		tc := tc
-
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			_, gotErr := NewValidator(tc.cfg)
-			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
-				t.Errorf("Process(%+v) got unexpected validator creation error substring: %v", tc.name, diff)
-			}
-		})
-	}
-}
-
 func TestMatchIssue(t *testing.T) {
 	t.Parallel()
 
@@ -167,16 +124,19 @@ func TestMatchIssue(t *testing.T) {
 				}
 				authHeader := r.Header.Get("Authorization")
 				if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-					w.WriteHeader(500)
+					w.WriteHeader(http.StatusInternalServerError)
 					fmt.Fprintf(w, "missing or malformed authorization header")
 					return
 				}
 				w.WriteHeader(tc.fakeTokenServerResqCode)
 				fmt.Fprintf(w, `{"token":"this-is-the-token-from-github"}`)
 			}))
+			defer fakeTokenServer.Close()
 
 			hc, done := newTestServer(testHandleIssueReturn(t, tc.issueBytes))
 			defer done()
+			testGitHubClient := github.NewClient(hc)
+
 			ghAppOpts := []githubapp.ConfigOption{
 				githubapp.WithJWTTokenCaching(1 * time.Minute),
 				githubapp.WithAccessTokenURLPattern(fakeTokenServer.URL + "/%s/access_tokens"),
@@ -184,10 +144,7 @@ func TestMatchIssue(t *testing.T) {
 			testGHAppCfg := githubapp.NewConfig(tc.cfg.GitHubAppID, tc.cfg.GitHubAppInstallationID, testPrivateKey, ghAppOpts...)
 			testGituhbApp := githubapp.New(testGHAppCfg)
 
-			validator, err := NewValidator(tc.cfg, WithGitHubClient(github.NewClient(hc)), WithGithubApp(testGituhbApp))
-			if err != nil {
-				t.Fatalf("failed to create validator: %v", err)
-			}
+			validator := NewValidator(testGitHubClient, testGituhbApp)
 			gotErr := validator.MatchIssue(ctx, tc.issueURL)
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
@@ -196,6 +153,7 @@ func TestMatchIssue(t *testing.T) {
 	}
 }
 
+// testGeneratePrivateKey generates a rsa Key for testing use.
 func testGeneratePrivateKey(tb testing.TB) (string, *rsa.PrivateKey) {
 	tb.Helper()
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -241,8 +199,7 @@ func testHandleIssueReturn(tb testing.TB, data []byte) func(w http.ResponseWrite
 		fmt.Println(r.URL.Path)
 		switch r.URL.Path {
 		case "/repos/test-owner/test-repo/issues/1":
-			_, err := w.Write(data)
-			if err != nil {
+			if _, err := w.Write(data); err != nil {
 				tb.Fatalf("failed to write response for object info: %v", err)
 			}
 		default:
