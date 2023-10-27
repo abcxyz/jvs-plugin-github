@@ -141,9 +141,9 @@ func TestMatchIssue(t *testing.T) {
 				githubapp.WithAccessTokenURLPattern(fakeTokenServer.URL + "/%s/access_tokens"),
 			}
 			testGHAppCfg := githubapp.NewConfig(tc.cfg.GitHubAppID, tc.cfg.GitHubAppInstallationID, testPrivateKey, ghAppOpts...)
-			testGituhbApp := githubapp.New(testGHAppCfg)
+			testGithubApp := githubapp.New(testGHAppCfg)
 
-			validator := NewValidator(testGitHubClient, testGituhbApp)
+			validator := NewValidator(testGitHubClient, testGithubApp)
 			gotErr := validator.MatchIssue(ctx, tc.issueURL)
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)

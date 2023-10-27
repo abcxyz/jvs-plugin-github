@@ -60,7 +60,7 @@ func NewValidator(ghClinet *github.Client, ghApp *githubapp.GitHubApp) *Validato
 }
 
 // MatchIssue parses issue info from provided issueURL and validate if the issue is valid.
-func (v *Validator) MatchIssue(ctx context.Context, issueURL string, opts ...githubapp.ConfigOption) error {
+func (v *Validator) MatchIssue(ctx context.Context, issueURL string) error {
 	info, err := parseIssueInfoFromURL(issueURL)
 	if err != nil {
 		return fmt.Errorf("failed to parse issueURL: %w", err)
