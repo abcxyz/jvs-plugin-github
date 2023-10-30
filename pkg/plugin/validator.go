@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -73,20 +74,22 @@ func (v *Validator) MatchIssue(ctx context.Context, issueURL string) error {
 	}
 	v.client = v.client.WithAuthToken(t)
 
-	if err := v.validateIssue(ctx, info); err != nil {
-		return errors.Join(errInvalidJustification, fmt.Errorf("failed to validated issue: %w", err))
-	}
-	return nil
+	return v.validateIssue(ctx, info)
 }
 
 // validateIssue verifies if the issue exists and the issue is open.
 func (v *Validator) validateIssue(ctx context.Context, pi *pluginGithubIssue) error {
-	issue, _, err := v.client.Issues.Get(ctx, pi.Owner, pi.RepoName, pi.IssueNumber)
+	issue, resp, err := v.client.Issues.Get(ctx, pi.Owner, pi.RepoName, pi.IssueNumber)
 	if err != nil {
+		// if issue not exist, the resp code will be 404
+		// otherwise this should be an internal error
+		if resp.StatusCode == http.StatusNotFound {
+			return errors.Join(errInvalidJustification, fmt.Errorf("issue not found error: %w", err))
+		}
 		return fmt.Errorf("failed to get issue info: %w", err)
 	}
 	if s := issue.GetState(); s != "open" {
-		return fmt.Errorf("issue is in state: %s, please make sure to use an open issue", s)
+		return errors.Join(errInvalidJustification, fmt.Errorf("issue is in state: %s, please make sure to use an open issue", s))
 	}
 	return nil
 }
