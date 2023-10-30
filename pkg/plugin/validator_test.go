@@ -35,6 +35,13 @@ import (
 	"github.com/google/go-github/v55/github"
 )
 
+const (
+	issueURLHost           = "https://github.com"
+	existIssueURLPath      = "/test-owner/test-repo/issues/1"
+	noneExistIssueURLPath  = "/test-owner/test-repo/issues/2"
+	issueRESTAPIPathPrefix = "/repos"
+)
+
 func TestMatchIssue(t *testing.T) {
 	t.Parallel()
 
@@ -50,7 +57,7 @@ func TestMatchIssue(t *testing.T) {
 	}{
 		{
 			name:     "success",
-			issueURL: "https://github.com/test-owner/test-repo/issues/1",
+			issueURL: fmt.Sprintf("%s%s", issueURLHost, existIssueURLPath),
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
@@ -85,7 +92,7 @@ func TestMatchIssue(t *testing.T) {
 		},
 		{
 			name:     "unauthorized",
-			issueURL: "https://github.com/test-owner/test-repo/issues/1",
+			issueURL: fmt.Sprintf("%s%s", issueURLHost, existIssueURLPath),
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
@@ -97,7 +104,7 @@ func TestMatchIssue(t *testing.T) {
 		},
 		{
 			name:     "issue_not_open",
-			issueURL: "https://github.com/test-owner/test-repo/issues/1",
+			issueURL: fmt.Sprintf("%s%s", issueURLHost, existIssueURLPath),
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
@@ -105,6 +112,18 @@ func TestMatchIssue(t *testing.T) {
 			},
 			fakeTokenServerResqCode: http.StatusCreated,
 			wantErrSubstr:           "issue is in state: closed",
+			issueBytes:              []byte(`{"state": "closed"}`),
+		},
+		{
+			name:     "issue_not_exist",
+			issueURL: fmt.Sprintf("%s%s", issueURLHost, noneExistIssueURLPath),
+			cfg: &PluginConfig{
+				GitHubAppID:             "test-github-id",
+				GitHubAppInstallationID: "test-install-id",
+				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+			},
+			fakeTokenServerResqCode: http.StatusCreated,
+			wantErrSubstr:           "issue not found",
 			issueBytes:              []byte(`{"state": "closed"}`),
 		},
 	}
@@ -202,12 +221,14 @@ func testHandleIssueReturn(tb testing.TB, data []byte) func(w http.ResponseWrite
 	tb.Helper()
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/repos/test-owner/test-repo/issues/1":
+		case fmt.Sprintf("%s%s", issueRESTAPIPathPrefix, existIssueURLPath):
 			if _, err := w.Write(data); err != nil {
 				tb.Fatalf("failed to write response for object info: %v", err)
 			}
+		case fmt.Sprintf("%s%s", issueRESTAPIPathPrefix, noneExistIssueURLPath):
+			http.Error(w, "issue not found", http.StatusNotFound)
 		default:
-			http.Error(w, "injected error", http.StatusNotFound)
+			http.Error(w, "injected server error", http.StatusInternalServerError)
 		}
 	}
 }
