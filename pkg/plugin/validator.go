@@ -17,6 +17,7 @@ package plugin
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -63,7 +64,7 @@ func NewValidator(ghClinet *github.Client, ghApp *githubapp.GitHubApp) *Validato
 func (v *Validator) MatchIssue(ctx context.Context, issueURL string) error {
 	info, err := parseIssueInfoFromURL(issueURL)
 	if err != nil {
-		return fmt.Errorf("failed to parse issueURL: %w", err)
+		return errors.Join(errInvalidJustification, fmt.Errorf("failed to parse issueURL: %w", err))
 	}
 
 	t, err := v.getAccessToken(ctx, info.RepoName)
@@ -72,7 +73,10 @@ func (v *Validator) MatchIssue(ctx context.Context, issueURL string) error {
 	}
 	v.client = v.client.WithAuthToken(t)
 
-	return v.validateIssue(ctx, info)
+	if err := v.validateIssue(ctx, info); err != nil {
+		return errors.Join(errInvalidJustification, fmt.Errorf("failed to validated issue: %w", err))
+	}
+	return nil
 }
 
 // validateIssue verifies if the issue exists and the issue is open.
