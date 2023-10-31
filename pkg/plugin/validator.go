@@ -47,7 +47,7 @@ type ExchangeResponse struct {
 
 // pluginGithubIssue contains the required attribute parsed from
 // the issue URL.
-type pluginGithubIssue struct {
+type pluginGitHubIssue struct {
 	Owner       string
 	RepoName    string
 	IssueNumber int
@@ -62,26 +62,26 @@ func NewValidator(ghClinet *github.Client, ghApp *githubapp.GitHubApp) *Validato
 }
 
 // MatchIssue parses issue info from provided issueURL and validate if the issue is valid.
-func (v *Validator) MatchIssue(ctx context.Context, issueURL string) error {
+func (v *Validator) MatchIssue(ctx context.Context, issueURL string) (*pluginGitHubIssue, error) {
 	info, err := parseIssueInfoFromURL(issueURL)
 	if err != nil {
-		return errors.Join(errInvalidJustification, fmt.Errorf("failed to parse issueURL: %w", err))
+		return nil, errors.Join(errInvalidJustification, fmt.Errorf("failed to parse issueURL: %w", err))
 	}
 
 	t, err := v.getAccessToken(ctx, info.RepoName)
 	if err != nil {
-		return fmt.Errorf("failed to get access token: %w", err)
+		return nil, fmt.Errorf("failed to get access token: %w", err)
 	}
 	v.client = v.client.WithAuthToken(t)
 
-	return v.validateIssue(ctx, info)
+	return info, v.validateIssue(ctx, info)
 }
 
 // validateIssue verifies if the issue exists and the issue is open.
-func (v *Validator) validateIssue(ctx context.Context, pi *pluginGithubIssue) error {
+func (v *Validator) validateIssue(ctx context.Context, pi *pluginGitHubIssue) error {
 	issue, resp, err := v.client.Issues.Get(ctx, pi.Owner, pi.RepoName, pi.IssueNumber)
 	if err != nil {
-		// when the issue doesn't not exist, github rest api will return a 404
+		// When the issue doesn't not exist, github rest api will return a 404
 		// all other non-200 status code will be treated as internal error.
 		//
 		// See: https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28#get-an-issue--status-codes.
@@ -119,7 +119,7 @@ func (v *Validator) getAccessToken(ctx context.Context, repoName string) (string
 }
 
 // parseGithubIssue parses issue info from Issue URL.
-func parseIssueInfoFromURL(issueURL string) (*pluginGithubIssue, error) {
+func parseIssueInfoFromURL(issueURL string) (*pluginGitHubIssue, error) {
 	if match, _ := regexp.MatchString(issueURLPatternRegExp, issueURL); !match {
 		return nil, fmt.Errorf("invalid issue url, issueURL doesn't match pattern: %s", issueURLPatternRegExp)
 	}
@@ -135,7 +135,7 @@ func parseIssueInfoFromURL(issueURL string) (*pluginGithubIssue, error) {
 		return nil, fmt.Errorf("failed to convert issueNumber %s to int: %w", arr[4], err)
 	}
 
-	return &pluginGithubIssue{
+	return &pluginGitHubIssue{
 		Owner:       arr[1],
 		RepoName:    arr[2],
 		IssueNumber: issueNumber,

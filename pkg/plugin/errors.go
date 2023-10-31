@@ -14,6 +14,10 @@
 
 package plugin
 
-import "fmt"
+type invalidJustificationError string
 
-var errInvalidJustification = fmt.Errorf("invalid justification")
+func (e invalidJustificationError) Error() string {
+	return string(e)
+}
+
+const errInvalidJustification = invalidJustificationError("invalid justification")
