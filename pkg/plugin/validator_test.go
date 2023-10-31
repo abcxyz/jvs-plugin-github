@@ -33,14 +33,17 @@ import (
 
 	"github.com/abcxyz/pkg/githubapp"
 	"github.com/abcxyz/pkg/testutil"
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-github/v55/github"
 )
 
 const (
-	issueURLHost           = "https://github.com"
-	existIssueURLPath      = "/test-owner/test-repo/issues/1"
-	noneExistIssueURLPath  = "/test-owner/test-repo/issues/2"
-	issueRESTAPIPathPrefix = "/repos"
+	issueURLHost            = "https://github.com"
+	testIssueOwner          = "test-owner"
+	testIssueRepoName       = "test-repo"
+	testExistIssueNumber    = 1
+	testNonExistIssueNumber = 2
+	issueRESTAPIPathPrefix  = "/repos"
 )
 
 func TestMatchIssue(t *testing.T) {
@@ -55,12 +58,13 @@ func TestMatchIssue(t *testing.T) {
 		issueBytes              []byte
 		fakeTokenServerResqCode int
 		wantErrSubstr           string
+		wantPluginGitHubIssue   *pluginGitHubIssue
 		// check is returned error is the correct type
 		isInvalidJustificationErr bool
 	}{
 		{
 			name:     "success",
-			issueURL: fmt.Sprintf("%s%s", issueURLHost, existIssueURLPath),
+			issueURL: fmt.Sprintf("%s/%s/%s/issues/%v", issueURLHost, testIssueOwner, testIssueRepoName, testExistIssueNumber),
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
@@ -68,10 +72,15 @@ func TestMatchIssue(t *testing.T) {
 			},
 			fakeTokenServerResqCode: http.StatusCreated,
 			issueBytes:              []byte(`{"state": "open"}`),
+			wantPluginGitHubIssue: &pluginGitHubIssue{
+				Owner:       testIssueOwner,
+				RepoName:    testIssueRepoName,
+				IssueNumber: testExistIssueNumber,
+			},
 		},
 		{
 			name:     "invalid_issue_url",
-			issueURL: "https://github.com/test-owner/test-repo",
+			issueURL: fmt.Sprintf("%s/%s/%s", issueURLHost, testIssueOwner, testIssueRepoName),
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
@@ -84,7 +93,7 @@ func TestMatchIssue(t *testing.T) {
 		},
 		{
 			name:     "issue_not_int",
-			issueURL: "https://github.com/test-owner/test-repo/issues/abc",
+			issueURL: fmt.Sprintf("%s/%s/%s/issues/%s", issueURLHost, testIssueOwner, testIssueRepoName, "abc"),
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
@@ -97,7 +106,7 @@ func TestMatchIssue(t *testing.T) {
 		},
 		{
 			name:     "unauthorized",
-			issueURL: fmt.Sprintf("%s%s", issueURLHost, existIssueURLPath),
+			issueURL: fmt.Sprintf("%s/%s/%s/issues/%v", issueURLHost, testIssueOwner, testIssueRepoName, testExistIssueNumber),
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
@@ -110,7 +119,7 @@ func TestMatchIssue(t *testing.T) {
 		},
 		{
 			name:     "issue_not_open",
-			issueURL: fmt.Sprintf("%s%s", issueURLHost, existIssueURLPath),
+			issueURL: fmt.Sprintf("%s/%s/%s/issues/%v", issueURLHost, testIssueOwner, testIssueRepoName, testExistIssueNumber),
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
@@ -120,10 +129,15 @@ func TestMatchIssue(t *testing.T) {
 			wantErrSubstr:             "issue is in state: closed",
 			isInvalidJustificationErr: true,
 			issueBytes:                []byte(`{"state": "closed"}`),
+			wantPluginGitHubIssue: &pluginGitHubIssue{
+				Owner:       testIssueOwner,
+				RepoName:    testIssueRepoName,
+				IssueNumber: testExistIssueNumber,
+			},
 		},
 		{
 			name:     "issue_not_exist",
-			issueURL: fmt.Sprintf("%s%s", issueURLHost, noneExistIssueURLPath),
+			issueURL: fmt.Sprintf("%s/%s/%s/issues/%v", issueURLHost, testIssueOwner, testIssueRepoName, testNonExistIssueNumber),
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
@@ -133,6 +147,11 @@ func TestMatchIssue(t *testing.T) {
 			wantErrSubstr:             "issue not found",
 			isInvalidJustificationErr: true,
 			issueBytes:                []byte(`{"state": "closed"}`),
+			wantPluginGitHubIssue: &pluginGitHubIssue{
+				Owner:       testIssueOwner,
+				RepoName:    testIssueRepoName,
+				IssueNumber: testNonExistIssueNumber,
+			},
 		},
 	}
 
@@ -173,9 +192,12 @@ func TestMatchIssue(t *testing.T) {
 			testGithubApp := githubapp.New(testGHAppCfg)
 
 			validator := NewValidator(testGitHubClient, testGithubApp)
-			gotErr := validator.MatchIssue(ctx, tc.issueURL)
+			gotPluginGitHubIssue, gotErr := validator.MatchIssue(ctx, tc.issueURL)
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
+			}
+			if diff := cmp.Diff(gotPluginGitHubIssue, tc.wantPluginGitHubIssue); diff != "" {
+				t.Errorf("Process(%+v) got unexpected pluginGitHubIssue diff (-want, +got):\n%s", tc.name, diff)
 			}
 			if tc.wantErrSubstr != "" {
 				if tc.isInvalidJustificationErr {
@@ -240,11 +262,11 @@ func testHandleIssueReturn(tb testing.TB, data []byte) func(w http.ResponseWrite
 	tb.Helper()
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case fmt.Sprintf("%s%s", issueRESTAPIPathPrefix, existIssueURLPath):
+		case fmt.Sprintf("%s/%s/%s/issues/%v", issueRESTAPIPathPrefix, testIssueOwner, testIssueRepoName, testExistIssueNumber):
 			if _, err := w.Write(data); err != nil {
 				tb.Fatalf("failed to write response for object info: %v", err)
 			}
-		case fmt.Sprintf("%s%s", issueRESTAPIPathPrefix, noneExistIssueURLPath):
+		case fmt.Sprintf("%s/%s/%s/issues/%v", issueRESTAPIPathPrefix, testIssueOwner, testIssueRepoName, testNonExistIssueNumber):
 			http.Error(w, "issue not found", http.StatusNotFound)
 		default:
 			http.Error(w, "injected server error", http.StatusInternalServerError)
