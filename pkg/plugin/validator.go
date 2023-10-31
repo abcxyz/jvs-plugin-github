@@ -17,7 +17,6 @@ package plugin
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -65,7 +64,7 @@ func NewValidator(ghClinet *github.Client, ghApp *githubapp.GitHubApp) *Validato
 func (v *Validator) MatchIssue(ctx context.Context, issueURL string) (*pluginGitHubIssue, error) {
 	info, err := parseIssueInfoFromURL(issueURL)
 	if err != nil {
-		return nil, errors.Join(errInvalidJustification, fmt.Errorf("failed to parse issueURL: %w", err))
+		return nil, fmt.Errorf("%w: failed to parse issueURL: %w", errInvalidJustification, err)
 	}
 
 	t, err := v.getAccessToken(ctx, info.RepoName)
@@ -86,12 +85,12 @@ func (v *Validator) validateIssue(ctx context.Context, pi *pluginGitHubIssue) er
 		//
 		// See: https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28#get-an-issue--status-codes.
 		if resp.StatusCode == http.StatusNotFound {
-			return errors.Join(errInvalidJustification, fmt.Errorf("issue not found: %w", err))
+			return fmt.Errorf("%w: issue not found: %w", errInvalidJustification, err)
 		}
 		return fmt.Errorf("failed to get issue info: %w", err)
 	}
 	if s := issue.GetState(); s != "open" {
-		return errors.Join(errInvalidJustification, fmt.Errorf("issue is in state: %s, please make sure to use an open issue", s))
+		return fmt.Errorf("%w: issue is in state: %s, please make sure to use an open issue", errInvalidJustification, s)
 	}
 	return nil
 }

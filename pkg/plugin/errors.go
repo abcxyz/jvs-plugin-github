@@ -14,10 +14,10 @@
 
 package plugin
 
-type invalidJustificationError string
+type Error string
 
-func (e invalidJustificationError) Error() string {
+func (e Error) Error() string {
 	return string(e)
 }
 
-const errInvalidJustification = invalidJustificationError("invalid justification")
+const errInvalidJustification = Error("invalid justification")
