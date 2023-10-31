@@ -17,7 +17,9 @@ package plugin
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -63,7 +65,7 @@ func NewValidator(ghClinet *github.Client, ghApp *githubapp.GitHubApp) *Validato
 func (v *Validator) MatchIssue(ctx context.Context, issueURL string) error {
 	info, err := parseIssueInfoFromURL(issueURL)
 	if err != nil {
-		return fmt.Errorf("failed to parse issueURL: %w", err)
+		return errors.Join(errInvalidJustification, fmt.Errorf("failed to parse issueURL: %w", err))
 	}
 
 	t, err := v.getAccessToken(ctx, info.RepoName)
@@ -77,12 +79,19 @@ func (v *Validator) MatchIssue(ctx context.Context, issueURL string) error {
 
 // validateIssue verifies if the issue exists and the issue is open.
 func (v *Validator) validateIssue(ctx context.Context, pi *pluginGithubIssue) error {
-	issue, _, err := v.client.Issues.Get(ctx, pi.Owner, pi.RepoName, pi.IssueNumber)
+	issue, resp, err := v.client.Issues.Get(ctx, pi.Owner, pi.RepoName, pi.IssueNumber)
 	if err != nil {
+		// when the issue doesn't not exist, github rest api will return a 404
+		// all other non-200 status code will be treated as internal error.
+		//
+		// See: https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28#get-an-issue--status-codes.
+		if resp.StatusCode == http.StatusNotFound {
+			return errors.Join(errInvalidJustification, fmt.Errorf("issue not found: %w", err))
+		}
 		return fmt.Errorf("failed to get issue info: %w", err)
 	}
 	if s := issue.GetState(); s != "open" {
-		return fmt.Errorf("issue is in state: %s, please make sure to use an open issue", s)
+		return errors.Join(errInvalidJustification, fmt.Errorf("issue is in state: %s, please make sure to use an open issue", s))
 	}
 	return nil
 }

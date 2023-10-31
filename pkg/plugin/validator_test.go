@@ -22,6 +22,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -33,6 +34,13 @@ import (
 	"github.com/abcxyz/pkg/githubapp"
 	"github.com/abcxyz/pkg/testutil"
 	"github.com/google/go-github/v55/github"
+)
+
+const (
+	issueURLHost           = "https://github.com"
+	existIssueURLPath      = "/test-owner/test-repo/issues/1"
+	noneExistIssueURLPath  = "/test-owner/test-repo/issues/2"
+	issueRESTAPIPathPrefix = "/repos"
 )
 
 func TestMatchIssue(t *testing.T) {
@@ -47,10 +55,12 @@ func TestMatchIssue(t *testing.T) {
 		issueBytes              []byte
 		fakeTokenServerResqCode int
 		wantErrSubstr           string
+		// check is returned error is the correct type
+		isInvalidJustificationErr bool
 	}{
 		{
 			name:     "success",
-			issueURL: "https://github.com/test-owner/test-repo/issues/1",
+			issueURL: fmt.Sprintf("%s%s", issueURLHost, existIssueURLPath),
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
@@ -67,9 +77,10 @@ func TestMatchIssue(t *testing.T) {
 				GitHubAppInstallationID: "test-install-id",
 				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
 			},
-			fakeTokenServerResqCode: http.StatusCreated,
-			wantErrSubstr:           "invalid issue url",
-			issueBytes:              []byte(`{"state": "open"}`),
+			fakeTokenServerResqCode:   http.StatusCreated,
+			wantErrSubstr:             "invalid issue url",
+			isInvalidJustificationErr: true,
+			issueBytes:                []byte(`{"state": "open"}`),
 		},
 		{
 			name:     "issue_not_int",
@@ -79,33 +90,49 @@ func TestMatchIssue(t *testing.T) {
 				GitHubAppInstallationID: "test-install-id",
 				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
 			},
-			fakeTokenServerResqCode: http.StatusCreated,
-			wantErrSubstr:           "invalid issue url, issueURL doesn't match pattern",
-			issueBytes:              []byte(`{"state": "open"}`),
+			fakeTokenServerResqCode:   http.StatusCreated,
+			wantErrSubstr:             "invalid issue url, issueURL doesn't match pattern",
+			isInvalidJustificationErr: true,
+			issueBytes:                []byte(`{"state": "open"}`),
 		},
 		{
 			name:     "unauthorized",
-			issueURL: "https://github.com/test-owner/test-repo/issues/1",
+			issueURL: fmt.Sprintf("%s%s", issueURLHost, existIssueURLPath),
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
 				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
 			},
-			fakeTokenServerResqCode: http.StatusUnauthorized,
-			wantErrSubstr:           "failed to get access token",
-			issueBytes:              []byte(`{"state": "open"}`),
+			fakeTokenServerResqCode:   http.StatusUnauthorized,
+			wantErrSubstr:             "failed to get access token",
+			isInvalidJustificationErr: false,
+			issueBytes:                []byte(`{"state": "open"}`),
 		},
 		{
 			name:     "issue_not_open",
-			issueURL: "https://github.com/test-owner/test-repo/issues/1",
+			issueURL: fmt.Sprintf("%s%s", issueURLHost, existIssueURLPath),
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
 				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
 			},
-			fakeTokenServerResqCode: http.StatusCreated,
-			wantErrSubstr:           "issue is in state: closed",
-			issueBytes:              []byte(`{"state": "closed"}`),
+			fakeTokenServerResqCode:   http.StatusCreated,
+			wantErrSubstr:             "issue is in state: closed",
+			isInvalidJustificationErr: true,
+			issueBytes:                []byte(`{"state": "closed"}`),
+		},
+		{
+			name:     "issue_not_exist",
+			issueURL: fmt.Sprintf("%s%s", issueURLHost, noneExistIssueURLPath),
+			cfg: &PluginConfig{
+				GitHubAppID:             "test-github-id",
+				GitHubAppInstallationID: "test-install-id",
+				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+			},
+			fakeTokenServerResqCode:   http.StatusCreated,
+			wantErrSubstr:             "issue not found",
+			isInvalidJustificationErr: true,
+			issueBytes:                []byte(`{"state": "closed"}`),
 		},
 	}
 
@@ -149,6 +176,17 @@ func TestMatchIssue(t *testing.T) {
 			gotErr := validator.MatchIssue(ctx, tc.issueURL)
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
+			}
+			if tc.wantErrSubstr != "" {
+				if tc.isInvalidJustificationErr {
+					if !errors.Is(gotErr, errInvalidJustification) {
+						t.Errorf("Process(%+v) got unexpected error type, expect error to be of type: %v", tc.name, errInvalidJustification)
+					}
+				} else {
+					if errors.Is(gotErr, errInvalidJustification) {
+						t.Errorf("Process(%+v) got unexpected error type, expect error NOT to be of type: %v", tc.name, errInvalidJustification)
+					}
+				}
 			}
 		})
 	}
@@ -202,12 +240,14 @@ func testHandleIssueReturn(tb testing.TB, data []byte) func(w http.ResponseWrite
 	tb.Helper()
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/repos/test-owner/test-repo/issues/1":
+		case fmt.Sprintf("%s%s", issueRESTAPIPathPrefix, existIssueURLPath):
 			if _, err := w.Write(data); err != nil {
 				tb.Fatalf("failed to write response for object info: %v", err)
 			}
+		case fmt.Sprintf("%s%s", issueRESTAPIPathPrefix, noneExistIssueURLPath):
+			http.Error(w, "issue not found", http.StatusNotFound)
 		default:
-			http.Error(w, "injected error", http.StatusNotFound)
+			http.Error(w, "injected server error", http.StatusInternalServerError)
 		}
 	}
 }
