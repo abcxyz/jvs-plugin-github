@@ -5,6 +5,7 @@ go 1.21
 require (
 	github.com/abcxyz/jvs v0.1.4
 	github.com/abcxyz/pkg v0.7.1
+	github.com/google/go-cmp v0.6.0
 	github.com/google/go-github/v55 v55.0.0
 )
 
@@ -15,7 +16,6 @@ require (
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
 	github.com/hashicorp/go-plugin v1.5.2 // indirect
