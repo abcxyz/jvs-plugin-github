@@ -30,6 +30,7 @@ import (
 const (
 	// githubCategory is the justification category this plugin will be validating.
 	githubCategory               = "github"
+	respAnnotationKeyIssueURL    = "github_issue_url"
 	respAnnotationKeyIssueOwner  = "github_issue_owner"
 	respAnnotationKeyIssueRepo   = "github_issue_repo"
 	respAnnotationKeyIssueNumber = "github_issue_number"
@@ -40,13 +41,16 @@ type issueMatcher interface {
 	MatchIssue(ctx context.Context, issueURL string) (*pluginGitHubIssue, error)
 }
 
-// GithubPlugin is the implementation of jvspb.Validator interface.
+// GitHubPlugin is the implementation of jvspb.Validator interface.
+//
+// See: https://pkg.go.dev/github.com/abcxyz/jvs@v0.1.4/apis/v0#Validator
 type GitHubPlugin struct {
+	// validator implements issueMatcher for validating github issues.
 	validator issueMatcher
 }
 
-// NewGithubPlugin creates a new GithubPlugin.
-func NewGithubPlugin(ctx context.Context, ghClient *github.Client, ghApp *githubapp.GitHubApp) *GitHubPlugin {
+// NewGitHubPlugin creates a new GitHubPlugin.
+func NewGitHubPlugin(ctx context.Context, ghClient *github.Client, ghApp *githubapp.GitHubApp) *GitHubPlugin {
 	return &GitHubPlugin{
 		validator: NewValidator(ghClient, ghApp),
 	}
@@ -69,6 +73,7 @@ func (g *GitHubPlugin) Validate(ctx context.Context, req *jvspb.ValidateJustific
 	return &jvspb.ValidateJustificationResponse{
 		Valid: true,
 		Annotation: map[string]string{
+			respAnnotationKeyIssueURL:    req.Justification.Value,
 			respAnnotationKeyIssueOwner:  info.Owner,
 			respAnnotationKeyIssueRepo:   info.RepoName,
 			respAnnotationKeyIssueNumber: strconv.Itoa(info.IssueNumber),

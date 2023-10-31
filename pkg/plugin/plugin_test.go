@@ -26,13 +26,17 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
+const (
+	testGitHubIssueURL = "https://github.com/test-owner/test-repo/issues/1"
+)
+
 type testIssueMatcher struct {
-	rPluginGithubIssue *pluginGitHubIssue
+	rPluginGitHubIssue *pluginGitHubIssue
 	rErr               error
 }
 
 func (t *testIssueMatcher) MatchIssue(ctx context.Context, issueURL string) (*pluginGitHubIssue, error) {
-	return t.rPluginGithubIssue, t.rErr
+	return t.rPluginGitHubIssue, t.rErr
 }
 
 func TestValidate(t *testing.T) {
@@ -48,7 +52,7 @@ func TestValidate(t *testing.T) {
 		{
 			name: "success",
 			validator: &testIssueMatcher{
-				rPluginGithubIssue: &pluginGitHubIssue{
+				rPluginGitHubIssue: &pluginGitHubIssue{
 					Owner:       "test-owner",
 					RepoName:    "test-repo-name",
 					IssueNumber: 1,
@@ -57,13 +61,14 @@ func TestValidate(t *testing.T) {
 			},
 			req: &jvspb.ValidateJustificationRequest{
 				Justification: &jvspb.Justification{
-					Category: "github",
-					Value:    "https://github.com/test-owner/test-repo/issues/1",
+					Category: githubCategory,
+					Value:    testGitHubIssueURL,
 				},
 			},
 			wantResq: &jvspb.ValidateJustificationResponse{
 				Valid: true,
 				Annotation: map[string]string{
+					respAnnotationKeyIssueURL:    testGitHubIssueURL,
 					respAnnotationKeyIssueOwner:  "test-owner",
 					respAnnotationKeyIssueRepo:   "test-repo-name",
 					respAnnotationKeyIssueNumber: "1",
@@ -73,13 +78,13 @@ func TestValidate(t *testing.T) {
 		{
 			name: "internal_error",
 			validator: &testIssueMatcher{
-				rPluginGithubIssue: nil,
+				rPluginGitHubIssue: nil,
 				rErr:               fmt.Errorf("injected error"),
 			},
 			req: &jvspb.ValidateJustificationRequest{
 				Justification: &jvspb.Justification{
-					Category: "github",
-					Value:    "https://github.com/test-owner/test-repo/issues/1",
+					Category: githubCategory,
+					Value:    testGitHubIssueURL,
 				},
 			},
 			wantErr: "injected error",
@@ -87,13 +92,13 @@ func TestValidate(t *testing.T) {
 		{
 			name: "wrong_category",
 			validator: &testIssueMatcher{
-				rPluginGithubIssue: nil,
+				rPluginGitHubIssue: nil,
 				rErr:               nil,
 			},
 			req: &jvspb.ValidateJustificationRequest{
 				Justification: &jvspb.Justification{
 					Category: "test-category",
-					Value:    "https://github.com/test-owner/test-repo/issues/1",
+					Value:    testGitHubIssueURL,
 				},
 			},
 			wantResq: &jvspb.ValidateJustificationResponse{
@@ -104,13 +109,13 @@ func TestValidate(t *testing.T) {
 		{
 			name: "issue_not_found",
 			validator: &testIssueMatcher{
-				rPluginGithubIssue: nil,
+				rPluginGitHubIssue: nil,
 				rErr:               errors.Join(errInvalidJustification, fmt.Errorf("issue not found")),
 			},
 			req: &jvspb.ValidateJustificationRequest{
 				Justification: &jvspb.Justification{
-					Category: "github",
-					Value:    "https://github.com/test-owner/test-repo/issues/1",
+					Category: githubCategory,
+					Value:    testGitHubIssueURL,
 				},
 			},
 			wantResq: &jvspb.ValidateJustificationResponse{

@@ -44,7 +44,7 @@ type ExchangeResponse struct {
 	AccessToken string `json:"token"`
 }
 
-// pluginGithubIssue contains the required attribute parsed from
+// pluginGitHubIssue contains the required attribute parsed from
 // the issue URL.
 type pluginGitHubIssue struct {
 	Owner       string
@@ -117,7 +117,7 @@ func (v *Validator) getAccessToken(ctx context.Context, repoName string) (string
 	return tokenResp.AccessToken, nil
 }
 
-// parseGithubIssue parses issue info from Issue URL.
+// parseIssueInfoFromURL parses pluginGitHubIssue from Issue URL.
 func parseIssueInfoFromURL(issueURL string) (*pluginGitHubIssue, error) {
 	if match, _ := regexp.MatchString(issueURLPatternRegExp, issueURL); !match {
 		return nil, fmt.Errorf("invalid issue url, issueURL doesn't match pattern: %s", issueURLPatternRegExp)
