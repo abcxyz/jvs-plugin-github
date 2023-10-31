@@ -22,6 +22,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -54,6 +55,8 @@ func TestMatchIssue(t *testing.T) {
 		issueBytes              []byte
 		fakeTokenServerResqCode int
 		wantErrSubstr           string
+		// check is returned error is the correct type
+		isInvalidJustificationErr bool
 	}{
 		{
 			name:     "success",
@@ -74,9 +77,10 @@ func TestMatchIssue(t *testing.T) {
 				GitHubAppInstallationID: "test-install-id",
 				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
 			},
-			fakeTokenServerResqCode: http.StatusCreated,
-			wantErrSubstr:           "invalid issue url",
-			issueBytes:              []byte(`{"state": "open"}`),
+			fakeTokenServerResqCode:   http.StatusCreated,
+			wantErrSubstr:             "invalid issue url",
+			isInvalidJustificationErr: true,
+			issueBytes:                []byte(`{"state": "open"}`),
 		},
 		{
 			name:     "issue_not_int",
@@ -86,9 +90,10 @@ func TestMatchIssue(t *testing.T) {
 				GitHubAppInstallationID: "test-install-id",
 				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
 			},
-			fakeTokenServerResqCode: http.StatusCreated,
-			wantErrSubstr:           "invalid issue url, issueURL doesn't match pattern",
-			issueBytes:              []byte(`{"state": "open"}`),
+			fakeTokenServerResqCode:   http.StatusCreated,
+			wantErrSubstr:             "invalid issue url, issueURL doesn't match pattern",
+			isInvalidJustificationErr: true,
+			issueBytes:                []byte(`{"state": "open"}`),
 		},
 		{
 			name:     "unauthorized",
@@ -98,9 +103,10 @@ func TestMatchIssue(t *testing.T) {
 				GitHubAppInstallationID: "test-install-id",
 				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
 			},
-			fakeTokenServerResqCode: http.StatusUnauthorized,
-			wantErrSubstr:           "failed to get access token",
-			issueBytes:              []byte(`{"state": "open"}`),
+			fakeTokenServerResqCode:   http.StatusUnauthorized,
+			wantErrSubstr:             "failed to get access token",
+			isInvalidJustificationErr: false,
+			issueBytes:                []byte(`{"state": "open"}`),
 		},
 		{
 			name:     "issue_not_open",
@@ -110,9 +116,10 @@ func TestMatchIssue(t *testing.T) {
 				GitHubAppInstallationID: "test-install-id",
 				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
 			},
-			fakeTokenServerResqCode: http.StatusCreated,
-			wantErrSubstr:           "issue is in state: closed",
-			issueBytes:              []byte(`{"state": "closed"}`),
+			fakeTokenServerResqCode:   http.StatusCreated,
+			wantErrSubstr:             "issue is in state: closed",
+			isInvalidJustificationErr: true,
+			issueBytes:                []byte(`{"state": "closed"}`),
 		},
 		{
 			name:     "issue_not_exist",
@@ -122,9 +129,10 @@ func TestMatchIssue(t *testing.T) {
 				GitHubAppInstallationID: "test-install-id",
 				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
 			},
-			fakeTokenServerResqCode: http.StatusCreated,
-			wantErrSubstr:           "issue not found",
-			issueBytes:              []byte(`{"state": "closed"}`),
+			fakeTokenServerResqCode:   http.StatusCreated,
+			wantErrSubstr:             "issue not found",
+			isInvalidJustificationErr: true,
+			issueBytes:                []byte(`{"state": "closed"}`),
 		},
 	}
 
@@ -168,6 +176,17 @@ func TestMatchIssue(t *testing.T) {
 			gotErr := validator.MatchIssue(ctx, tc.issueURL)
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
+			}
+			if tc.wantErrSubstr != "" {
+				if tc.isInvalidJustificationErr {
+					if !errors.Is(gotErr, errInvalidJustification) {
+						t.Errorf("Process(%+v) got unexpected error type, expect error to be of type: %v", tc.name, errInvalidJustification)
+					}
+				} else {
+					if errors.Is(gotErr, errInvalidJustification) {
+						t.Errorf("Process(%+v) got unexpected error type, expect error NOT to be of type: %v", tc.name, errInvalidJustification)
+					}
+				}
 			}
 		})
 	}

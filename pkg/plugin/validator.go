@@ -81,9 +81,10 @@ func (v *Validator) MatchIssue(ctx context.Context, issueURL string) error {
 func (v *Validator) validateIssue(ctx context.Context, pi *pluginGithubIssue) error {
 	issue, resp, err := v.client.Issues.Get(ctx, pi.Owner, pi.RepoName, pi.IssueNumber)
 	if err != nil {
-		// The url is validated by parseIssueInfoFromURL, when 404 is returned it can only
-		// because issue does not exist, and this is the only case for errInvalidJustification.
-		// Other none-200 status code will be treated as internal error.
+		// when the issue doesn't not exist, github rest api will return a 404
+		// all other non-200 status code will be treated as internal error.
+		//
+		// See: https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28#get-an-issue--status-codes.
 		if resp.StatusCode == http.StatusNotFound {
 			return errors.Join(errInvalidJustification, fmt.Errorf("issue not found: %w", err))
 		}
