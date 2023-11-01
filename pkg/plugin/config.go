@@ -33,7 +33,7 @@ type PluginConfig struct {
 	GitHubAppPrivateKeyPEM string
 }
 
-// Validate validates if the config is valid
+// Validate validates if the config is valid.
 func (cfg *PluginConfig) Validate() error {
 	var rErr error
 	if cfg.GitHubAppID == "" {
