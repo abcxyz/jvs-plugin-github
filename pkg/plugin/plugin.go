@@ -16,17 +16,80 @@ package plugin
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strconv"
 
 	jvspb "github.com/abcxyz/jvs/apis/v0"
+	"github.com/abcxyz/pkg/githubapp"
+	"github.com/google/go-github/v55/github"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-type GithubPlugin struct{}
+const (
+	// githubCategory is the justification category this plugin will be validating.
+	githubCategory               = "github"
+	respAnnotationKeyIssueURL    = "github_issue_url"
+	respAnnotationKeyIssueOwner  = "github_issue_owner"
+	respAnnotationKeyIssueRepo   = "github_issue_repo"
+	respAnnotationKeyIssueNumber = "github_issue_number"
+)
 
-func (g *GithubPlugin) Validate(ctx context.Context, req *jvspb.ValidateJustificationRequest) (*jvspb.ValidateJustificationResponse, error) {
+// issueMatcher is the mockable interface for the convenience of testing.
+type issueMatcher interface {
+	MatchIssue(ctx context.Context, issueURL string) (*pluginGitHubIssue, error)
+}
+
+// GitHubPlugin is the implementation of jvspb.Validator interface.
+//
+// See: https://pkg.go.dev/github.com/abcxyz/jvs@v0.1.4/apis/v0#Validator
+type GitHubPlugin struct {
+	// validator implements issueMatcher for validating github issues.
+	validator issueMatcher
+}
+
+// NewGitHubPlugin creates a new GitHubPlugin.
+func NewGitHubPlugin(ctx context.Context, ghClient *github.Client, ghApp *githubapp.GitHubApp) *GitHubPlugin {
+	return &GitHubPlugin{
+		validator: NewValidator(ghClient, ghApp),
+	}
+}
+
+// Validate returns the validation result.
+func (g *GitHubPlugin) Validate(ctx context.Context, req *jvspb.ValidateJustificationRequest) (*jvspb.ValidateJustificationResponse, error) {
+	if got, want := req.Justification.Category, githubCategory; got != want {
+		return generateInvalidErrResq(fmt.Sprintf("failed to perform validation, expected category %q to be %q", got, want)), nil
+	}
+
+	info, err := g.validator.MatchIssue(ctx, req.Justification.Value)
+	if err != nil {
+		if errors.Is(err, errInvalidJustification) {
+			return generateInvalidErrResq(err.Error()), nil
+		} else {
+			return nil, status.Errorf(codes.Internal, err.Error())
+		}
+	}
+	return &jvspb.ValidateJustificationResponse{
+		Valid: true,
+		Annotation: map[string]string{
+			respAnnotationKeyIssueURL:    req.Justification.Value,
+			respAnnotationKeyIssueOwner:  info.Owner,
+			respAnnotationKeyIssueRepo:   info.RepoName,
+			respAnnotationKeyIssueNumber: strconv.Itoa(info.IssueNumber),
+		},
+	}, nil
+}
+
+func (g *GitHubPlugin) GetUIData(ctx context.Context, req *jvspb.GetUIDataRequest) (*jvspb.UIData, error) {
 	return nil, fmt.Errorf("Unimplemented")
 }
 
-func (g *GithubPlugin) GetUIData(ctx context.Context, req *jvspb.GetUIDataRequest) (*jvspb.UIData, error) {
-	return nil, fmt.Errorf("Unimplemented")
+// generateInvalidErrResq generates a ValidateJustificationResponse indicating
+// the justification is invalid, and use the provided string to set Error field.
+func generateInvalidErrResq(s string) *jvspb.ValidateJustificationResponse {
+	return &jvspb.ValidateJustificationResponse{
+		Valid: false,
+		Error: []string{s},
+	}
 }
