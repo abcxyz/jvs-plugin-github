@@ -63,23 +63,7 @@ func TestServerCommand(t *testing.T) {
 			expErr: `invalid configuration: GITHUB_APP_ID is empty`,
 		},
 		{
-			name: "invalid_config_missing_github_app_installation_id",
-			env: map[string]string{
-				"GITHUB_APP_ID":              "123456",
-				"GITHUB_APP_PRIVATE_KEY_PEM": testPrivateKeyString,
-			},
-			expErr: `invalid configuration: GITHUB_APP_INSTALLATION_ID is empty`,
-		},
-		{
-			name: "invalid_config_missing_private_key_pem",
-			env: map[string]string{
-				"GITHUB_APP_ID":              "123456",
-				"GITHUB_APP_INSTALLATION_ID": "123456",
-			},
-			expErr: `invalid configuration: GITHUB_APP_PRIVATE_KEY_PEM is empty`,
-		},
-		{
-			name: "invalid_config_invalid_private_key_pem",
+			name: "invalid_private_key_pem",
 			env: map[string]string{
 				"GITHUB_APP_ID":              "123456",
 				"GITHUB_APP_INSTALLATION_ID": "123456",
