@@ -19,18 +19,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/abcxyz/pkg/githubapp"
 	"github.com/google/go-github/v55/github"
 )
 
 const (
-	issueURLPatternRegExp = `^https:\/\/github.com\/([a-zA-Z0-9-]*)\/[a-zA-Z0-9-]*\/issues\/[0-9]+$`
+	regexpNamedGroupKeyOwner   = "owner"
+	regexpNameGroupKeyRepoName = "repoName"
+	regexpNamedGroupKeyIssue   = "issue"
 )
+
+var issueURLPatternRegExp = fmt.Sprintf(`^https:\/\/github.com\/(?P<%s>[a-zA-Z0-9-]*)\/(?P<%s>[a-zA-Z0-9-]*)\/issues\/(?P<%s>[0-9]+$)`, regexpNamedGroupKeyOwner, regexpNameGroupKeyRepoName, regexpNamedGroupKeyIssue)
 
 // Validator validates github issue against validation criteria.
 type Validator struct {
@@ -119,24 +121,34 @@ func (v *Validator) getAccessToken(ctx context.Context, repoName string) (string
 
 // parseIssueInfoFromURL parses pluginGitHubIssue from Issue URL.
 func parseIssueInfoFromURL(issueURL string) (*pluginGitHubIssue, error) {
-	if match, _ := regexp.MatchString(issueURLPatternRegExp, issueURL); !match {
-		return nil, fmt.Errorf("invalid issue url, issueURL doesn't match pattern: %s", issueURLPatternRegExp)
-	}
-	u, err := url.Parse(issueURL)
+	r, err := regexp.Compile(issueURLPatternRegExp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse provided issue url: %w", err)
+		return nil, fmt.Errorf("invalid regexp: %w", err)
 	}
 
-	arr := strings.Split(u.Path, "/")
-	// len(arr) is not checked here as regexp.MatchString already covers this.
-	issueNumber, err := strconv.Atoi(arr[4])
+	// r.FindStringSubMatch returns nil if there isn't a match.
+	//
+	// See: https://pkg.go.dev/regexp#Regexp.FindStringSubmatch
+	m := r.FindStringSubmatch(issueURL)
+	if m == nil {
+		return nil, fmt.Errorf("%w: invalid issue url, issueURL doesn't match pattern: %s", errInvalidJustification, issueURLPatternRegExp)
+	}
+
+	result := make(map[string]string)
+	for i, name := range r.SubexpNames() {
+		if i != 0 && name != "" {
+			result[name] = m[i]
+		}
+	}
+
+	issueNumber, err := strconv.Atoi(result[regexpNamedGroupKeyIssue])
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert issueNumber %s to int: %w", arr[4], err)
+		return nil, fmt.Errorf("%w: failed to convert issueNumber %s to int: %w", errInvalidJustification, result[regexpNamedGroupKeyIssue], err)
 	}
 
 	return &pluginGitHubIssue{
-		Owner:       arr[1],
-		RepoName:    arr[2],
+		Owner:       result[regexpNamedGroupKeyOwner],
+		RepoName:    result[regexpNameGroupKeyRepoName],
 		IssueNumber: issueNumber,
 	}, nil
 }
