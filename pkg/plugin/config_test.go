@@ -141,7 +141,7 @@ func TestPluginConfig_Validate(t *testing.T) {
 
 			err := tc.cfg.Validate()
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
-				t.Errorf("Unexpected err: %s", diff)
+				t.Errorf(diff)
 			}
 		})
 	}
