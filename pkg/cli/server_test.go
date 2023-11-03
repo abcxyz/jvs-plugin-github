@@ -113,9 +113,9 @@ func testGeneratePrivateKey(tb testing.TB) (string, *rsa.PrivateKey) {
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
 	}
-	buf := new(bytes.Buffer)
-	err = pem.Encode(buf, privateKeyPEM)
-	if err != nil {
+
+	var buf bytes.Buffer
+	if err = pem.Encode(&buf, privateKeyPEM); err != nil {
 		tb.Fatalf("Error encoding privateKeyPEM: %v", err)
 	}
 	return buf.String(), privateKey
