@@ -43,7 +43,7 @@ func (cfg *PluginConfig) Validate() error {
 		rErr = errors.Join(rErr, fmt.Errorf("GITHUB_APP_INSTALLATION_ID is empty"))
 	}
 	if cfg.GitHubAppPrivateKeyPEM == "" {
-		rErr = errors.Join(rErr, fmt.Errorf("$GITHUB_APP_PRIVATE_KEY_PEM is empty"))
+		rErr = errors.Join(rErr, fmt.Errorf("GITHUB_APP_PRIVATE_KEY_PEM is empty"))
 	}
 
 	return rErr
