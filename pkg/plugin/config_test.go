@@ -26,6 +26,8 @@ import (
 const (
 	testGitHubAppID             = "123456"
 	testGitHubAppInstallationID = "12345678"
+	testGitHubPluginDisplayName = "test DisplayName"
+	testGitHubPluginHint        = "test Hint"
 )
 
 func TestPluginConfig_ToFlags(t *testing.T) {
@@ -45,11 +47,15 @@ func TestPluginConfig_ToFlags(t *testing.T) {
 				"GITHUB_APP_ID":              testGitHubAppID,
 				"GITHUB_APP_INSTALLATION_ID": testGitHubAppInstallationID,
 				"GITHUB_APP_PRIVATE_KEY_PEM": testPrivateKeyString,
+				"GITHUB_PLUGIN_DISPLAY_NAME": testGitHubPluginDisplayName,
+				"GITHUB_PLUGIN_HINT":         testGitHubPluginHint,
 			},
 			wantConfig: &PluginConfig{
 				GitHubAppID:             testGitHubAppID,
 				GitHubAppInstallationID: testGitHubAppInstallationID,
 				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubPluginDisplayName: testGitHubPluginDisplayName,
+				GitHubPluginHint:        testGitHubPluginHint,
 			},
 		},
 		{
@@ -58,11 +64,15 @@ func TestPluginConfig_ToFlags(t *testing.T) {
 				"-github-app-id", testGitHubAppID,
 				"-github-app-installation-id", testGitHubAppInstallationID,
 				"-github-app-private-key-pem", testPrivateKeyString,
+				"-github-plugin-display-name", testGitHubPluginDisplayName,
+				"-github-plugin-hint", testGitHubPluginHint,
 			},
 			wantConfig: &PluginConfig{
 				GitHubAppID:             testGitHubAppID,
 				GitHubAppInstallationID: testGitHubAppInstallationID,
 				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubPluginDisplayName: testGitHubPluginDisplayName,
+				GitHubPluginHint:        testGitHubPluginHint,
 			},
 		},
 	}
@@ -102,6 +112,8 @@ func TestPluginConfig_Validate(t *testing.T) {
 				GitHubAppID:             testGitHubAppID,
 				GitHubAppInstallationID: testGitHubAppInstallationID,
 				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubPluginDisplayName: testGitHubPluginDisplayName,
+				GitHubPluginHint:        testGitHubPluginHint,
 			},
 		},
 		{
@@ -110,6 +122,8 @@ func TestPluginConfig_Validate(t *testing.T) {
 				GitHubAppID:             "",
 				GitHubAppInstallationID: testGitHubAppInstallationID,
 				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubPluginDisplayName: testGitHubPluginDisplayName,
+				GitHubPluginHint:        testGitHubPluginHint,
 			},
 			wantErr: "GITHUB_APP_ID is empty",
 		},
@@ -119,6 +133,8 @@ func TestPluginConfig_Validate(t *testing.T) {
 				GitHubAppID:             testGitHubAppID,
 				GitHubAppInstallationID: "",
 				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubPluginDisplayName: testGitHubPluginDisplayName,
+				GitHubPluginHint:        testGitHubPluginHint,
 			},
 			wantErr: "GITHUB_APP_INSTALLATION_ID is empty",
 		},
@@ -128,8 +144,32 @@ func TestPluginConfig_Validate(t *testing.T) {
 				GitHubAppID:             testGitHubAppID,
 				GitHubAppInstallationID: testGitHubAppInstallationID,
 				GitHubAppPrivateKeyPEM:  "",
+				GitHubPluginDisplayName: testGitHubPluginDisplayName,
+				GitHubPluginHint:        testGitHubPluginHint,
 			},
 			wantErr: "GITHUB_APP_PRIVATE_KEY_PEM is empty",
+		},
+		{
+			name: "empty_github_plugin_display_name",
+			cfg: &PluginConfig{
+				GitHubAppID:             testGitHubAppID,
+				GitHubAppInstallationID: testGitHubAppInstallationID,
+				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubPluginDisplayName: "",
+				GitHubPluginHint:        testGitHubPluginHint,
+			},
+			wantErr: "GITHUB_PLUGIN_DISPLAY_NAME is empty",
+		},
+		{
+			name: "empty_github_plugin_hint",
+			cfg: &PluginConfig{
+				GitHubAppID:             testGitHubAppID,
+				GitHubAppInstallationID: testGitHubAppInstallationID,
+				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubPluginDisplayName: testGitHubPluginDisplayName,
+				GitHubPluginHint:        "",
+			},
+			wantErr: "GITHUB_PLUGIN_HINT is empty",
 		},
 	}
 

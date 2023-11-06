@@ -31,6 +31,12 @@ type PluginConfig struct {
 	GitHubAppInstallationID string
 	// The private Key PEM obtained for github app.
 	GitHubAppPrivateKeyPEM string
+
+	// GitHubPluginDisplayName is for display, e.g. for the web UI.
+	GitHubPluginDisplayName string
+
+	// GitHubPluginHint is for what value to put as the justification.
+	GitHubPluginHint string
 }
 
 // Validate validates if the config is valid.
@@ -44,6 +50,12 @@ func (cfg *PluginConfig) Validate() error {
 	}
 	if cfg.GitHubAppPrivateKeyPEM == "" {
 		rErr = errors.Join(rErr, fmt.Errorf("GITHUB_APP_PRIVATE_KEY_PEM is empty"))
+	}
+	if cfg.GitHubPluginDisplayName == "" {
+		rErr = errors.Join(rErr, fmt.Errorf("GITHUB_PLUGIN_DISPLAY_NAME is empty"))
+	}
+	if cfg.GitHubPluginHint == "" {
+		rErr = errors.Join(rErr, fmt.Errorf("GITHUB_PLUGIN_HINT is empty"))
 	}
 
 	return rErr
@@ -76,5 +88,20 @@ func (cfg *PluginConfig) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		EnvVar: "GITHUB_APP_PRIVATE_KEY_PEM",
 		Usage:  "The private key pem obtained for github app.",
 	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "github-plugin-display-name",
+		Target: &cfg.GitHubPluginDisplayName,
+		EnvVar: "GITHUB_PLUGIN_DISPLAY_NAME",
+		Usage:  "The name for display, e.g. for the web UI.",
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "github-plugin-hint",
+		Target: &cfg.GitHubPluginHint,
+		EnvVar: "GITHUB_PLUGIN_HINT",
+		Usage:  "Hint for what value to put as the justification.",
+	})
+
 	return set
 }

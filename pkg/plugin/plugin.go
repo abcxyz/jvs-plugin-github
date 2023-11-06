@@ -47,12 +47,18 @@ type issueMatcher interface {
 type GitHubPlugin struct {
 	// validator implements issueMatcher for validating github issues.
 	validator issueMatcher
+	// uiData contains the data for ui to display
+	uiData *jvspb.UIData
 }
 
 // NewGitHubPlugin creates a new GitHubPlugin.
-func NewGitHubPlugin(ctx context.Context, ghClient *github.Client, ghApp *githubapp.GitHubApp) *GitHubPlugin {
+func NewGitHubPlugin(ctx context.Context, ghClient *github.Client, ghApp *githubapp.GitHubApp, cfg *PluginConfig) *GitHubPlugin {
 	return &GitHubPlugin{
 		validator: NewValidator(ghClient, ghApp),
+		uiData: &jvspb.UIData{
+			DisplayName: cfg.GitHubPluginDisplayName,
+			Hint:        cfg.GitHubPluginHint,
+		},
 	}
 }
 
@@ -81,8 +87,9 @@ func (g *GitHubPlugin) Validate(ctx context.Context, req *jvspb.ValidateJustific
 	}, nil
 }
 
+// GetUIData returns UIDate for jvs ui service to use.
 func (g *GitHubPlugin) GetUIData(ctx context.Context, req *jvspb.GetUIDataRequest) (*jvspb.UIData, error) {
-	return nil, fmt.Errorf("Unimplemented")
+	return g.uiData, nil
 }
 
 // generateInvalidErrResq generates a ValidateJustificationResponse indicating
