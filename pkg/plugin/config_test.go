@@ -18,6 +18,7 @@ package plugin
 import (
 	"testing"
 
+	"github.com/abcxyz/jvs-plugin-github/pkg/plugin/testhelper"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/testutil"
 	"github.com/google/go-cmp/cmp"
@@ -33,7 +34,7 @@ const (
 func TestPluginConfig_ToFlags(t *testing.T) {
 	t.Parallel()
 
-	testPrivateKeyString, _ := testGeneratePrivateKey(t)
+	testPrivateKeyString, _ := testhelper.TestGeneratePrivateKey(t)
 
 	cases := []struct {
 		name       string
@@ -99,7 +100,7 @@ func TestPluginConfig_ToFlags(t *testing.T) {
 func TestPluginConfig_Validate(t *testing.T) {
 	t.Parallel()
 
-	testPrivateKeyString, _ := testGeneratePrivateKey(t)
+	testPrivateKeyString, _ := testhelper.TestGeneratePrivateKey(t)
 
 	cases := []struct {
 		name    string
