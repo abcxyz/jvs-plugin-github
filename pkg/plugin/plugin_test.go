@@ -146,7 +146,7 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-func TestGetUIDate(t *testing.T) {
+func TestGetUIData(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {

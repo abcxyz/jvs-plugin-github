@@ -87,7 +87,7 @@ func (g *GitHubPlugin) Validate(ctx context.Context, req *jvspb.ValidateJustific
 	}, nil
 }
 
-// GetUIData returns UIDate for jvs ui service to use.
+// GetUIData returns UIData for jvs ui service to use.
 func (g *GitHubPlugin) GetUIData(ctx context.Context, req *jvspb.GetUIDataRequest) (*jvspb.UIData, error) {
 	return g.uiData, nil
 }
