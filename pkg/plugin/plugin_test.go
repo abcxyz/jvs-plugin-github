@@ -148,42 +148,20 @@ func TestValidate(t *testing.T) {
 
 func TestGetUIData(t *testing.T) {
 	t.Parallel()
+	ctx := context.Background()
 
-	cases := []struct {
-		name       string
-		uiData     *jvspb.UIData
-		wantUIData *jvspb.UIData
-	}{
-		{
-			name: "success",
-			uiData: &jvspb.UIData{
-				DisplayName: testGitHubPluginDisplayName,
-				Hint:        testGitHubPluginHint,
-			},
-			wantUIData: &jvspb.UIData{
-				DisplayName: testGitHubPluginDisplayName,
-				Hint:        testGitHubPluginHint,
-			},
-		},
+	uiData := &jvspb.UIData{
+		DisplayName: testGitHubPluginDisplayName,
+		Hint:        testGitHubPluginHint,
 	}
-
-	for _, tc := range cases {
-		tc := tc
-		ctx := context.Background()
-
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			p := &GitHubPlugin{
-				uiData: tc.uiData,
-			}
-			gotData, err := p.GetUIData(ctx, &jvspb.GetUIDataRequest{})
-			if err != nil {
-				t.Fatalf("failed to get UI data: %v", err)
-			}
-			if diff := cmp.Diff(tc.wantUIData, gotData, cmpopts.IgnoreUnexported(jvspb.UIData{})); diff != "" {
-				t.Errorf("Failed validation (-want,+got):\n%s", diff)
-			}
-		})
+	p := &GitHubPlugin{
+		uiData: uiData,
+	}
+	gotData, err := p.GetUIData(ctx, &jvspb.GetUIDataRequest{})
+	if err != nil {
+		t.Fatalf("failed to get UI data: %v", err)
+	}
+	if diff := cmp.Diff(uiData, gotData, cmpopts.IgnoreUnexported(jvspb.UIData{})); diff != "" {
+		t.Errorf("Failed validation (-want,+got):\n%s", diff)
 	}
 }
