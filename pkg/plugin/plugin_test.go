@@ -145,3 +145,23 @@ func TestValidate(t *testing.T) {
 		})
 	}
 }
+
+func TestGetUIData(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	uiData := &jvspb.UIData{
+		DisplayName: testGitHubPluginDisplayName,
+		Hint:        testGitHubPluginHint,
+	}
+	p := &GitHubPlugin{
+		uiData: uiData,
+	}
+	gotData, err := p.GetUIData(ctx, &jvspb.GetUIDataRequest{})
+	if err != nil {
+		t.Fatalf("failed to get UI data: %v", err)
+	}
+	if diff := cmp.Diff(uiData, gotData, cmpopts.IgnoreUnexported(jvspb.UIData{})); diff != "" {
+		t.Errorf("Failed validation (-want,+got):\n%s", diff)
+	}
+}

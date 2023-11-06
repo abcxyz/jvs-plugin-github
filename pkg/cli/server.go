@@ -100,7 +100,7 @@ func (c *ServerCommand) RunUnstarted(ctx context.Context, args []string) (*plugi
 	ghAppCfg := githubapp.NewConfig(c.cfg.GitHubAppID, c.cfg.GitHubAppInstallationID, pk)
 	ghApp := githubapp.New(ghAppCfg)
 
-	p := plugin.NewGitHubPlugin(ctx, ghClient, ghApp)
+	p := plugin.NewGitHubPlugin(ctx, ghClient, ghApp, c.cfg)
 	return p, nil
 }
 

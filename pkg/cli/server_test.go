@@ -28,6 +28,11 @@ import (
 	"github.com/abcxyz/pkg/testutil"
 )
 
+const (
+	testGitHubPluginDisplayName = "test DisplayName"
+	testGitHubPluginHint        = "test Hint"
+)
+
 func TestServerCommand(t *testing.T) {
 	t.Parallel()
 
@@ -47,6 +52,8 @@ func TestServerCommand(t *testing.T) {
 				"GITHUB_APP_ID":              "123456",
 				"GITHUB_APP_INSTALLATION_ID": "123456",
 				"GITHUB_APP_PRIVATE_KEY_PEM": testPrivateKeyString,
+				"GITHUB_PLUGIN_DISPLAY_NAME": testGitHubPluginDisplayName,
+				"GITHUB_PLUGIN_HINT":         testGitHubPluginHint,
 			},
 		},
 		{
@@ -59,6 +66,8 @@ func TestServerCommand(t *testing.T) {
 			env: map[string]string{
 				"GITHUB_APP_INSTALLATION_ID": "123456",
 				"GITHUB_APP_PRIVATE_KEY_PEM": testPrivateKeyString,
+				"GITHUB_PLUGIN_DISPLAY_NAME": testGitHubPluginDisplayName,
+				"GITHUB_PLUGIN_HINT":         testGitHubPluginHint,
 			},
 			expErr: `invalid configuration: GITHUB_APP_ID is empty`,
 		},
@@ -68,6 +77,8 @@ func TestServerCommand(t *testing.T) {
 				"GITHUB_APP_ID":              "123456",
 				"GITHUB_APP_INSTALLATION_ID": "123456",
 				"GITHUB_APP_PRIVATE_KEY_PEM": "invalid_pem",
+				"GITHUB_PLUGIN_DISPLAY_NAME": testGitHubPluginDisplayName,
+				"GITHUB_PLUGIN_HINT":         testGitHubPluginHint,
 			},
 			expErr: `failed to decode PEM formated key`,
 		},
