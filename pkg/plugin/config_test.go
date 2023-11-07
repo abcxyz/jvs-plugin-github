@@ -18,7 +18,7 @@ package plugin
 import (
 	"testing"
 
-	"github.com/abcxyz/jvs-plugin-github/pkg/plugin/testhelper"
+	"github.com/abcxyz/jvs-plugin-github/pkg/plugin/keyutil"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/testutil"
 	"github.com/google/go-cmp/cmp"
@@ -34,7 +34,7 @@ const (
 func TestPluginConfig_ToFlags(t *testing.T) {
 	t.Parallel()
 
-	testPrivateKeyString, _ := testhelper.TestGeneratePrivateKey(t)
+	testRSAPrivateKeyString, _ := keyutil.TestGenerateRsaPrivateKey(t)
 
 	cases := []struct {
 		name       string
@@ -47,14 +47,14 @@ func TestPluginConfig_ToFlags(t *testing.T) {
 			envs: map[string]string{
 				"GITHUB_APP_ID":              testGitHubAppID,
 				"GITHUB_APP_INSTALLATION_ID": testGitHubAppInstallationID,
-				"GITHUB_APP_PRIVATE_KEY_PEM": testPrivateKeyString,
+				"GITHUB_APP_PRIVATE_KEY_PEM": testRSAPrivateKeyString,
 				"GITHUB_PLUGIN_DISPLAY_NAME": testGitHubPluginDisplayName,
 				"GITHUB_PLUGIN_HINT":         testGitHubPluginHint,
 			},
 			wantConfig: &PluginConfig{
 				GitHubAppID:             testGitHubAppID,
 				GitHubAppInstallationID: testGitHubAppInstallationID,
-				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
 				GitHubPluginDisplayName: testGitHubPluginDisplayName,
 				GitHubPluginHint:        testGitHubPluginHint,
 			},
@@ -64,14 +64,14 @@ func TestPluginConfig_ToFlags(t *testing.T) {
 			args: []string{
 				"-github-app-id", testGitHubAppID,
 				"-github-app-installation-id", testGitHubAppInstallationID,
-				"-github-app-private-key-pem", testPrivateKeyString,
+				"-github-app-private-key-pem", testRSAPrivateKeyString,
 				"-github-plugin-display-name", testGitHubPluginDisplayName,
 				"-github-plugin-hint", testGitHubPluginHint,
 			},
 			wantConfig: &PluginConfig{
 				GitHubAppID:             testGitHubAppID,
 				GitHubAppInstallationID: testGitHubAppInstallationID,
-				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
 				GitHubPluginDisplayName: testGitHubPluginDisplayName,
 				GitHubPluginHint:        testGitHubPluginHint,
 			},
@@ -100,7 +100,7 @@ func TestPluginConfig_ToFlags(t *testing.T) {
 func TestPluginConfig_Validate(t *testing.T) {
 	t.Parallel()
 
-	testPrivateKeyString, _ := testhelper.TestGeneratePrivateKey(t)
+	testPrivateKeyString, _ := keyutil.TestGenerateRsaPrivateKey(t)
 
 	cases := []struct {
 		name    string

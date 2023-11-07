@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package testhelper provides commonly used test functions in different packages.
-package testhelper
+// Package keyutil provides commonly used test functions to generate RSA keys.
+package keyutil
 
 import (
 	"bytes"
@@ -21,16 +21,32 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"testing"
+
+	"github.com/lestrrat-go/jwx/v2/jwk"
 )
 
-// TestGeneratePrivateKey generates a rsa Key for testing use.
+// ReadRSAPrivateKey encrypts a PEM encoding RSA key string and returns the decoded RSA key.
+func ReadRSAPrivateKey(rsaPrivateKeyPEM string) (*rsa.PrivateKey, error) {
+	parsedKey, _, err := jwk.DecodePEM([]byte(rsaPrivateKeyPEM))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode PEM formated key:  %w", err)
+	}
+	privateKey, ok := parsedKey.(*rsa.PrivateKey)
+	if !ok {
+		return nil, fmt.Errorf("failed to convert to *rsa.PrivateKey (got %T)", parsedKey)
+	}
+	return privateKey, nil
+}
+
+// TestGenerateRsaPrivateKey generates a rsa Key for testing use.
 // It returns the PEM decoded private key string and the rsa.PrivateKey it itself.
-func TestGeneratePrivateKey(tb testing.TB) (string, *rsa.PrivateKey) {
+func TestGenerateRsaPrivateKey(tb testing.TB) (string, *rsa.PrivateKey) {
 	tb.Helper()
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		tb.Fatalf("Error generating RSA private key: %v", err)
+		tb.Fatalf("failed to generate rsa private key: %v", err)
 	}
 
 	// Encode the private key to the PEM format
@@ -41,7 +57,7 @@ func TestGeneratePrivateKey(tb testing.TB) (string, *rsa.PrivateKey) {
 
 	var buf bytes.Buffer
 	if err = pem.Encode(&buf, privateKeyPEM); err != nil {
-		tb.Fatalf("Error encoding privateKeyPEM: %v", err)
+		tb.Fatalf("failed to encode to pem: %v", err)
 	}
 	return buf.String(), privateKey
 }

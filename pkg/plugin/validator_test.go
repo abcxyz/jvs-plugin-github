@@ -26,7 +26,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/abcxyz/jvs-plugin-github/pkg/plugin/testhelper"
+	"github.com/abcxyz/jvs-plugin-github/pkg/plugin/keyutil"
 	"github.com/abcxyz/pkg/githubapp"
 	"github.com/abcxyz/pkg/testutil"
 	"github.com/google/go-cmp/cmp"
@@ -45,7 +45,7 @@ const (
 func TestMatchIssue(t *testing.T) {
 	t.Parallel()
 
-	testPrivateKeyString, testPrivateKey := testhelper.TestGeneratePrivateKey(t)
+	testRSAPrivateKeyString, testPrivateKey := keyutil.TestGenerateRsaPrivateKey(t)
 
 	cases := []struct {
 		name                    string
@@ -64,7 +64,7 @@ func TestMatchIssue(t *testing.T) {
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
 			},
 			fakeTokenServerResqCode: http.StatusCreated,
 			issueBytes:              []byte(`{"state": "open"}`),
@@ -80,7 +80,7 @@ func TestMatchIssue(t *testing.T) {
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
 			},
 			fakeTokenServerResqCode:   http.StatusCreated,
 			wantErrSubstr:             "invalid issue url",
@@ -93,7 +93,7 @@ func TestMatchIssue(t *testing.T) {
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
 			},
 			fakeTokenServerResqCode:   http.StatusCreated,
 			wantErrSubstr:             "invalid issue url, issueURL doesn't match pattern",
@@ -106,7 +106,7 @@ func TestMatchIssue(t *testing.T) {
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
 			},
 			fakeTokenServerResqCode:   http.StatusUnauthorized,
 			wantErrSubstr:             "failed to get access token",
@@ -119,7 +119,7 @@ func TestMatchIssue(t *testing.T) {
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
 			},
 			fakeTokenServerResqCode:   http.StatusCreated,
 			wantErrSubstr:             "issue is in state: closed",
@@ -137,7 +137,7 @@ func TestMatchIssue(t *testing.T) {
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
 			},
 			fakeTokenServerResqCode:   http.StatusCreated,
 			wantErrSubstr:             "issue not found",
