@@ -15,6 +15,7 @@
 package keyutil
 
 import (
+	"crypto/rsa"
 	"testing"
 
 	"github.com/abcxyz/pkg/testutil"
@@ -29,11 +30,13 @@ func TestReadRSAPrivateKey(t *testing.T) {
 	cases := []struct {
 		name        string
 		pkPEMString string
+		wantPK      *rsa.PrivateKey
 		wantErr     string
 	}{
 		{
 			name:        "success",
 			pkPEMString: testPrivateRSAKeyString,
+			wantPK:      testPrivateRSAKey,
 		},
 		{
 			name:        "invalid_pem",
@@ -49,12 +52,12 @@ func TestReadRSAPrivateKey(t *testing.T) {
 			t.Parallel()
 
 			gotPK, err := ReadRSAPrivateKey(tc.pkPEMString)
-			if err != nil {
-				if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
-					t.Errorf(diff)
-				}
-			} else {
-				if diff := cmp.Diff(gotPK, testPrivateRSAKey); diff != "" {
+
+			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
+				t.Errorf(diff)
+			}
+			if err == nil {
+				if diff := cmp.Diff(gotPK, tc.wantPK); diff != "" {
 					t.Errorf("rsa private key got unexpected diff (-want,+got):\n%s", diff)
 				}
 			}
