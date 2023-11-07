@@ -56,9 +56,20 @@ func TestReadRSAPrivateKey(t *testing.T) {
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf(diff)
 			}
-			if err == nil {
-				if diff := cmp.Diff(gotPK, tc.wantPK); diff != "" {
-					t.Errorf("rsa private key got unexpected diff (-want,+got):\n%s", diff)
+			// if gotPK and wantPK are both nil, no check is needed.
+			if !(gotPK == nil && tc.wantPK == nil) {
+				// if they are both not nil, compare them.
+				if gotPK != nil && tc.wantPK != nil {
+					if diff := cmp.Diff(gotPK, tc.wantPK); diff != "" {
+						t.Errorf("rsa private key got unexpected diff (-want,+got):\n%s", diff)
+					}
+				} else {
+					if gotPK == nil {
+						t.Errorf("gotPK is nil, expect it to be:%v", tc.wantPK)
+					}
+					if tc.wantPK == nil {
+						t.Errorf("gotPK is %v, expect it to be nil", gotPK)
+					}
 				}
 			}
 		})
