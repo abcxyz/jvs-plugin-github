@@ -42,7 +42,7 @@ func ReadRSAPrivateKey(rsaPrivateKeyPEM string) (*rsa.PrivateKey, error) {
 
 // TestGenerateRsaPrivateKey generates a rsa Key for testing use.
 // It returns the PEM decoded private key string and the rsa.PrivateKey it itself.
-func TestGenerateRsaPrivateKey(tb testing.TB) (string, *rsa.PrivateKey) {
+func TestGenerateRSAPrivateKey(tb testing.TB) (string, *rsa.PrivateKey) {
 	tb.Helper()
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {

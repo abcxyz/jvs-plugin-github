@@ -25,7 +25,7 @@ import (
 func TestReadRSAPrivateKey(t *testing.T) {
 	t.Parallel()
 
-	testPrivateRSAKeyString, testPrivateRSAKey := TestGenerateRsaPrivateKey(t)
+	testPrivateRSAKeyString, testPrivateRSAKey := TestGenerateRSAPrivateKey(t)
 
 	cases := []struct {
 		name        string

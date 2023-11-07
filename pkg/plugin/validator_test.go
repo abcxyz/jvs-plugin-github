@@ -45,7 +45,7 @@ const (
 func TestMatchIssue(t *testing.T) {
 	t.Parallel()
 
-	testRSAPrivateKeyString, testPrivateKey := keyutil.TestGenerateRsaPrivateKey(t)
+	testRSAPrivateKeyString, testPrivateKey := keyutil.TestGenerateRSAPrivateKey(t)
 
 	cases := []struct {
 		name                    string

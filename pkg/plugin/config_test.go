@@ -34,7 +34,7 @@ const (
 func TestPluginConfig_ToFlags(t *testing.T) {
 	t.Parallel()
 
-	testRSAPrivateKeyString, _ := keyutil.TestGenerateRsaPrivateKey(t)
+	testRSAPrivateKeyString, _ := keyutil.TestGenerateRSAPrivateKey(t)
 
 	cases := []struct {
 		name       string
@@ -100,7 +100,7 @@ func TestPluginConfig_ToFlags(t *testing.T) {
 func TestPluginConfig_Validate(t *testing.T) {
 	t.Parallel()
 
-	testPrivateKeyString, _ := keyutil.TestGenerateRsaPrivateKey(t)
+	testPrivateKeyString, _ := keyutil.TestGenerateRSAPrivateKey(t)
 
 	cases := []struct {
 		name    string

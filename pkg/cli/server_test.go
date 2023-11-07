@@ -32,7 +32,7 @@ const (
 func TestServerCommand(t *testing.T) {
 	t.Parallel()
 
-	testRSAPrivateKeyString, _ := keyutil.TestGenerateRsaPrivateKey(t)
+	testRSAPrivateKeyString, _ := keyutil.TestGenerateRSAPrivateKey(t)
 
 	ctx := logging.WithLogger(context.Background(), logging.TestLogger(t))
 
