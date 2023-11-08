@@ -17,15 +17,14 @@ package cli
 
 import (
 	"context"
-	"crypto/rsa"
 	"fmt"
 
 	"github.com/abcxyz/jvs-plugin-github/pkg/plugin"
+	"github.com/abcxyz/jvs-plugin-github/pkg/plugin/keyutil"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/githubapp"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/google/go-github/v55/github"
-	"github.com/lestrrat-go/jwx/v2/jwk"
 
 	jvspb "github.com/abcxyz/jvs/apis/v0"
 	goplugin "github.com/hashicorp/go-plugin"
@@ -93,7 +92,7 @@ func (c *ServerCommand) RunUnstarted(ctx context.Context, args []string) (*plugi
 
 	//  If a nil httpClient is provided, a new http.Client will be used.
 	ghClient := github.NewClient(nil)
-	pk, err := readPrivateKey(c.cfg.GitHubAppPrivateKeyPEM)
+	pk, err := keyutil.ReadRSAPrivateKey(c.cfg.GitHubAppPrivateKeyPEM)
 	if err != nil {
 		return nil, fmt.Errorf("invalid private key pem: %w", err)
 	}
@@ -102,17 +101,4 @@ func (c *ServerCommand) RunUnstarted(ctx context.Context, args []string) (*plugi
 
 	p := plugin.NewGitHubPlugin(ctx, ghClient, ghApp, c.cfg)
 	return p, nil
-}
-
-// readPrivateKey encrypts a PEM encoding RSA key string and returns the decoded RSA key.
-func readPrivateKey(rsaPrivateKeyPEM string) (*rsa.PrivateKey, error) {
-	parsedKey, _, err := jwk.DecodePEM([]byte(rsaPrivateKeyPEM))
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode PEM formated key:  %w", err)
-	}
-	privateKey, ok := parsedKey.(*rsa.PrivateKey)
-	if !ok {
-		return nil, fmt.Errorf("failed to convert to *rsa.PrivateKey (got %T)", parsedKey)
-	}
-	return privateKey, nil
 }

@@ -15,14 +15,10 @@
 package cli
 
 import (
-	"bytes"
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
 	"testing"
 
+	"github.com/abcxyz/jvs-plugin-github/pkg/plugin/keyutil"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/testutil"
@@ -36,7 +32,7 @@ const (
 func TestServerCommand(t *testing.T) {
 	t.Parallel()
 
-	testPrivateKeyString, _ := testGeneratePrivateKey(t)
+	testRSAPrivateKeyString, _ := keyutil.TestGenerateRSAPrivateKey(t)
 
 	ctx := logging.WithLogger(context.Background(), logging.TestLogger(t))
 
@@ -51,7 +47,7 @@ func TestServerCommand(t *testing.T) {
 			env: map[string]string{
 				"GITHUB_APP_ID":              "123456",
 				"GITHUB_APP_INSTALLATION_ID": "123456",
-				"GITHUB_APP_PRIVATE_KEY_PEM": testPrivateKeyString,
+				"GITHUB_APP_PRIVATE_KEY_PEM": testRSAPrivateKeyString,
 				"GITHUB_PLUGIN_DISPLAY_NAME": testGitHubPluginDisplayName,
 				"GITHUB_PLUGIN_HINT":         testGitHubPluginHint,
 			},
@@ -65,7 +61,7 @@ func TestServerCommand(t *testing.T) {
 			name: "invalid_config_missing_github_app_id",
 			env: map[string]string{
 				"GITHUB_APP_INSTALLATION_ID": "123456",
-				"GITHUB_APP_PRIVATE_KEY_PEM": testPrivateKeyString,
+				"GITHUB_APP_PRIVATE_KEY_PEM": testRSAPrivateKeyString,
 				"GITHUB_PLUGIN_DISPLAY_NAME": testGitHubPluginDisplayName,
 				"GITHUB_PLUGIN_HINT":         testGitHubPluginHint,
 			},
@@ -109,25 +105,4 @@ func TestServerCommand(t *testing.T) {
 			}
 		})
 	}
-}
-
-// testGeneratePrivateKey generates a rsa Key for testing use.
-func testGeneratePrivateKey(tb testing.TB) (string, *rsa.PrivateKey) {
-	tb.Helper()
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		tb.Fatalf("Error generating RSA private key: %v", err)
-	}
-
-	// Encode the private key to the PEM format
-	privateKeyPEM := &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
-	}
-
-	var buf bytes.Buffer
-	if err = pem.Encode(&buf, privateKeyPEM); err != nil {
-		tb.Fatalf("Error encoding privateKeyPEM: %v", err)
-	}
-	return buf.String(), privateKey
 }

@@ -15,13 +15,8 @@
 package plugin
 
 import (
-	"bytes"
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
-	"crypto/x509"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"net"
@@ -31,6 +26,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/abcxyz/jvs-plugin-github/pkg/plugin/keyutil"
 	"github.com/abcxyz/pkg/githubapp"
 	"github.com/abcxyz/pkg/testutil"
 	"github.com/google/go-cmp/cmp"
@@ -49,7 +45,7 @@ const (
 func TestMatchIssue(t *testing.T) {
 	t.Parallel()
 
-	testPrivateKeyString, testPrivateKey := testGeneratePrivateKey(t)
+	testRSAPrivateKeyString, testPrivateKey := keyutil.TestGenerateRSAPrivateKey(t)
 
 	cases := []struct {
 		name                    string
@@ -68,7 +64,7 @@ func TestMatchIssue(t *testing.T) {
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
 			},
 			fakeTokenServerResqCode: http.StatusCreated,
 			issueBytes:              []byte(`{"state": "open"}`),
@@ -84,7 +80,7 @@ func TestMatchIssue(t *testing.T) {
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
 			},
 			fakeTokenServerResqCode:   http.StatusCreated,
 			wantErrSubstr:             "invalid issue url",
@@ -97,7 +93,7 @@ func TestMatchIssue(t *testing.T) {
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
 			},
 			fakeTokenServerResqCode:   http.StatusCreated,
 			wantErrSubstr:             "invalid issue url, issueURL doesn't match pattern",
@@ -110,7 +106,7 @@ func TestMatchIssue(t *testing.T) {
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
 			},
 			fakeTokenServerResqCode:   http.StatusUnauthorized,
 			wantErrSubstr:             "failed to get access token",
@@ -123,7 +119,7 @@ func TestMatchIssue(t *testing.T) {
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
 			},
 			fakeTokenServerResqCode:   http.StatusCreated,
 			wantErrSubstr:             "issue is in state: closed",
@@ -141,7 +137,7 @@ func TestMatchIssue(t *testing.T) {
 			cfg: &PluginConfig{
 				GitHubAppID:             "test-github-id",
 				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testPrivateKeyString,
+				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
 			},
 			fakeTokenServerResqCode:   http.StatusCreated,
 			wantErrSubstr:             "issue not found",
@@ -212,27 +208,6 @@ func TestMatchIssue(t *testing.T) {
 			}
 		})
 	}
-}
-
-// testGeneratePrivateKey generates a rsa Key for testing use.
-func testGeneratePrivateKey(tb testing.TB) (string, *rsa.PrivateKey) {
-	tb.Helper()
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		tb.Fatalf("Error generating RSA private key: %v", err)
-	}
-
-	// Encode the private key to the PEM format
-	privateKeyPEM := &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
-	}
-	buf := new(bytes.Buffer)
-	err = pem.Encode(buf, privateKeyPEM)
-	if err != nil {
-		tb.Fatalf("Error encoding privateKeyPEM: %v", err)
-	}
-	return buf.String(), privateKey
 }
 
 // newTestServer creates a fake http client.
