@@ -50,7 +50,7 @@ builds:
 dockers:
   -
     ids:
-    - 'jvs-plugin-github'
+      - 'jvs-plugin-github'
     use: 'buildx'
     goos: 'linux'
     goarch: 'amd64'
@@ -70,7 +70,7 @@ dockers:
 
   -
     ids:
-    - 'jvs-plugin-github'
+      - 'jvs-plugin-github'
     use: 'buildx'
     goos: 'linux'
     goarch: 'arm64'

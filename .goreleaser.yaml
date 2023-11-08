@@ -13,11 +13,11 @@
 # limitations under the License.
 
 env:
-    # Global env vars for Go build.
-    - 'CGO_ENABLED=0'
-    - 'GO111MODULE=on'
-    - 'GOPROXY=https://proxy.golang.org,direct'
-  
+  # Global env vars for Go build.
+  - 'CGO_ENABLED=0'
+  - 'GO111MODULE=on'
+  - 'GOPROXY=https://proxy.golang.org,direct'
+
 before:
   hooks:
     - 'go mod tidy'
