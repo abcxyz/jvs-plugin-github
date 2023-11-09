@@ -23,7 +23,7 @@ variable "labels" {
   default     = {}
 }
 
-variable "gh_pk_accessor_role_members" {
+variable "gh_pk_accessor_members" {
   description = <<EOT
     The service accounts that need roles/secretmanager.secretAccessor role 
     for accessing keys stored in secret manager. Normally it will be jvs's

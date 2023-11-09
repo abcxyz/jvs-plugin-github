@@ -61,7 +61,7 @@ resource "google_secret_manager_secret_version" "gh_app_private_key_version" {
 // grant service account to access the secret, so the services can use that
 // for auth with github.
 resource "google_secret_manager_secret_iam_member" "gh_app_pk_accessor" {
-  for_each = toset(var.gh_pk_accessor_role_members)
+  for_each = toset(var.gh_pk_accessor_members)
 
   project = var.project_id
 
