@@ -13,9 +13,13 @@
 # limitations under the License.
 
 resource "google_project_service" "services" {
+  for_each = toset([
+    "secretmanager.googleapis.com"
+  ])
+
   project = var.project_id
 
-  service                    = "secretmanager.googleapis.com"
+  service                    = each.key
   disable_on_destroy         = false
   disable_dependent_services = false
 }
@@ -24,7 +28,7 @@ resource "google_project_service" "services" {
 resource "google_secret_manager_secret" "gh_app_private_key" {
   project = var.project_id
 
-  secret_id = var.secret_id
+  secret_id = var.gh_private_key_secret_id
   labels    = var.labels
 
   replication {
@@ -57,7 +61,7 @@ resource "google_secret_manager_secret_version" "gh_app_private_key_version" {
 // grant service account to access the secret, so the services can use that
 // for auth with github.
 resource "google_secret_manager_secret_iam_member" "gh_app_pk_accessor" {
-  for_each = toset(var.gh_pk_accessor_role_member)
+  for_each = toset(var.gh_pk_accessor_role_members)
 
   project = var.project_id
 

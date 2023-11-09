@@ -23,7 +23,7 @@ variable "labels" {
   default     = {}
 }
 
-variable "gh_pk_accessor_role_member" {
+variable "gh_pk_accessor_role_members" {
   description = <<EOT
     The service accounts that need roles/secretmanager.secretAccessor role 
     for accessing keys stored in secret manager. Normally it will be jvs's
@@ -32,7 +32,7 @@ variable "gh_pk_accessor_role_member" {
   type = list(string)
 }
 
-variable "secret_id" {
+variable "gh_private_key_secret_id" {
   description = <<EOT
     ID of the secret. This must be unique within the project. This is also
     the secret's name.

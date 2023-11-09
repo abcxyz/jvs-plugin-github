@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "secret_id" {
+output "gh_private_key_secret_id" {
   value = google_secret_manager_secret.gh_app_private_key.id
 }
 
-output "secret_name" {
+output "gh_private_key_secret_name" {
   value = google_secret_manager_secret.gh_app_private_key.name
 }
 
-output "secret_version_name" {
+output "gh_private_key_secret_version_name" {
   value = google_secret_manager_secret_version.gh_app_private_key_version.name
 }
