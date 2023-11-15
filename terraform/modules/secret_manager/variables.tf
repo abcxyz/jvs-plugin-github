@@ -23,13 +23,15 @@ variable "labels" {
   default     = {}
 }
 
-variable "gh_pk_accessor_members" {
+variable "gh_pk_accessor_members_map" {
   description = <<EOT
-    The service accounts that need roles/secretmanager.secretAccessor role 
-    for accessing keys stored in secret manager. Normally it will be jvs's
-    api and ui service account.
+    The value of each entry in the map will be the service account that need
+    roles/secretmanager.secretAccessor role for accessing keys stored in secret manager.
+     Normally it will be jvs's api and ui service account.
+    This is a map so when terraform won't complain when values are derived from resource
+    attributes that cannot be determined until apply.
   EOT
-  type = list(string)
+  type = map(string)
 }
 
 variable "gh_private_key_secret_id" {
