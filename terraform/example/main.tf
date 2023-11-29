@@ -59,7 +59,7 @@ module "github_plugin" {
   # Pin to proper version.
   source = "git::https://github.com/abcxyz/jvs-plugin-github.git//terraform/modules/secret_manager?ref=69fdda2fb914a28e89d352d86a501397f4ddcaad"
 
-  project_id = module.qinhang_jvs_plugin_github_dev.project_id
+  project_id = "YOUR_PROJECT_ID"
 
   gh_private_key_secret_id = local.gh_private_key_id
 
