@@ -18,10 +18,11 @@ package plugin
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/abcxyz/jvs-plugin-github/pkg/plugin/keyutil"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/testutil"
-	"github.com/google/go-cmp/cmp"
 )
 
 const (

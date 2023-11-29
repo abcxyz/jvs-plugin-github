@@ -20,10 +20,11 @@ import (
 	"fmt"
 	"testing"
 
-	jvspb "github.com/abcxyz/jvs/apis/v0"
-	"github.com/abcxyz/pkg/testutil"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+
+	jvspb "github.com/abcxyz/jvs/apis/v0"
+	"github.com/abcxyz/pkg/testutil"
 )
 
 const (
