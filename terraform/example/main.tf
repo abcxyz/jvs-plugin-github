@@ -40,8 +40,6 @@ module "jvs" {
 
   jvs_prober_image = "us-docker.pkg.dev/abcxyz-artifacts/docker-images/jvs-prober:0.0.5-amd64"
 
-  # Specify the plugin environment variables. See the file below for details:
-  # https://github.com/abcxyz/jvs-plugin-jira/blob/main/pkg/plugin/config.go
   plugin_envvars = {
     "GITHUB_APP_ID" : "YOUR_GITHUB_APP_ID",
     "GITHUB_APP_INSTALLATION_ID" : "YOUR_GITHUB_APP_INSTALLATION_ID",
