@@ -18,8 +18,9 @@ import (
 	"crypto/rsa"
 	"testing"
 
-	"github.com/abcxyz/pkg/testutil"
 	"github.com/google/go-cmp/cmp"
+
+	"github.com/abcxyz/pkg/testutil"
 )
 
 func TestReadRSAPrivateKey(t *testing.T) {

@@ -24,8 +24,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/abcxyz/pkg/githubapp"
 	"github.com/google/go-github/v55/github"
+
+	"github.com/abcxyz/pkg/githubapp"
 )
 
 const (

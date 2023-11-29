@@ -26,11 +26,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-github/v55/github"
+
 	"github.com/abcxyz/jvs-plugin-github/pkg/plugin/keyutil"
 	"github.com/abcxyz/pkg/githubapp"
 	"github.com/abcxyz/pkg/testutil"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-github/v55/github"
 )
 
 const (
