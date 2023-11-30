@@ -15,10 +15,10 @@ to point to a new JVS base image, and merge the PR.
 go get -u && go mod tidy
 ```
 
-- Create a tag using [create-tag workflow](https://github.com/abcxyz/jvs-plugin-github/blob/main/.github/workflows/create-tag.yml) on default branch and
+- Create a tag using [create-tag workflow](https://github.com/abcxyz/jvs/actions/workflows/create-tag.yml) on default branch and
      run the workflow with below inputs.
 
-  - tag name with format `v1.x.x`, using semantic versioning.
+  - tag name with format `v0.x.x`, using semantic versioning.
         -   If there are breaking changes, bump the major version.
         -   If there are new major features (but not breaking), bump the minor
             version.
