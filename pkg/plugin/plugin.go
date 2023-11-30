@@ -20,11 +20,12 @@ import (
 	"fmt"
 	"strconv"
 
-	jvspb "github.com/abcxyz/jvs/apis/v0"
-	"github.com/abcxyz/pkg/githubapp"
 	"github.com/google/go-github/v55/github"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	jvspb "github.com/abcxyz/jvs/apis/v0"
+	"github.com/abcxyz/pkg/githubapp"
 )
 
 const (

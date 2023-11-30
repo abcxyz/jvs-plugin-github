@@ -19,15 +19,15 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/go-github/v55/github"
+	goplugin "github.com/hashicorp/go-plugin"
+
 	"github.com/abcxyz/jvs-plugin-github/pkg/plugin"
 	"github.com/abcxyz/jvs-plugin-github/pkg/plugin/keyutil"
+	jvspb "github.com/abcxyz/jvs/apis/v0"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/githubapp"
 	"github.com/abcxyz/pkg/logging"
-	"github.com/google/go-github/v55/github"
-
-	jvspb "github.com/abcxyz/jvs/apis/v0"
-	goplugin "github.com/hashicorp/go-plugin"
 )
 
 type ServerCommand struct {
