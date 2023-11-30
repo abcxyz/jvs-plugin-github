@@ -15,13 +15,14 @@
 locals {
   # This is the key id under secret manager, where user need to
   # manully upload the github app private key to.
-  gh_private_key_id="github_app_private_key"
+  gh_private_key_id = "github_app_private_key"
+  project_id        = "YOUR_PROJECT_ID"
 }
 
 module "jvs" {
   source = "git::https://github.com/abcxyz/jvs.git//terraform/e2e?ref=main" # this should be pinned to the SHA desired
 
-  project_id = "YOUR_PROJECT_ID"
+  project_id = local.project_id
 
   # Specify who can access JVS.
   jvs_invoker_members = ["user:foo@example.com"]
@@ -47,10 +48,10 @@ module "jvs" {
     "GITHUB_PLUGIN_HINT" : "jvs plugin github hint"
   }
 
-    plugin_secret_envvars = {
-      "GITHUB_SECRET": {
-        name: local.gh_private_key_id,
-        version: "latest",
+  plugin_secret_envvars = {
+    "GITHUB_SECRET" : {
+      name : local.gh_private_key_id,
+      version : "latest",
     }
   }
 }
@@ -59,12 +60,12 @@ module "github_plugin" {
   # Pin to proper version.
   source = "git::https://github.com/abcxyz/jvs-plugin-github.git//terraform/modules/secret_manager?ref=69fdda2fb914a28e89d352d86a501397f4ddcaad"
 
-  project_id = "YOUR_PROJECT_ID"
+  project_id = local.project_id
 
   gh_private_key_secret_id = local.gh_private_key_id
 
   gh_pk_accessor_members_map = {
     api_sa = module.jvs.jvs_api_service_account_member,
-    ui_sa = module.jvs.jvs_ui_service_account_member
+    ui_sa  = module.jvs.jvs_ui_service_account_member
   }
 }
