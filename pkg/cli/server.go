@@ -88,7 +88,9 @@ func (c *ServerCommand) RunUnstarted(ctx context.Context, args []string) (*plugi
 	if err := c.cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
-	logger.DebugContext(ctx, "loaded configuration", "GitHubAppID", c.cfg.GitHubAppID, "GitHubAppInstallationID", c.cfg.GitHubAppInstallationID)
+	logger.DebugContext(ctx, "loaded configuration",
+		"GitHubAppID", c.cfg.GitHubAppID,
+		"GitHubAppInstallationID", c.cfg.GitHubAppInstallationID)
 
 	//  If a nil httpClient is provided, a new http.Client will be used.
 	ghClient := github.NewClient(nil)
