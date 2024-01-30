@@ -8,7 +8,7 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/google/go-github/v55 v55.0.0
 	github.com/hashicorp/go-plugin v1.6.0
-	github.com/lestrrat-go/jwx/v2 v2.0.18
+	github.com/lestrrat-go/jwx/v2 v2.0.19
 	google.golang.org/grpc v1.60.1
 )
 
