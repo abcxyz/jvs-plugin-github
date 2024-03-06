@@ -23,10 +23,9 @@ import (
 	goplugin "github.com/hashicorp/go-plugin"
 
 	"github.com/abcxyz/jvs-plugin-github/pkg/plugin"
-	"github.com/abcxyz/jvs-plugin-github/pkg/plugin/keyutil"
 	jvspb "github.com/abcxyz/jvs/apis/v0"
 	"github.com/abcxyz/pkg/cli"
-	"github.com/abcxyz/pkg/githubapp"
+	"github.com/abcxyz/pkg/githubauth"
 	"github.com/abcxyz/pkg/logging"
 )
 
@@ -89,17 +88,15 @@ func (c *ServerCommand) RunUnstarted(ctx context.Context, args []string) (*plugi
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 	logger.DebugContext(ctx, "loaded configuration",
-		"GitHubAppID", c.cfg.GitHubAppID,
-		"GitHubAppInstallationID", c.cfg.GitHubAppInstallationID)
+		"github_app_id", c.cfg.GitHubAppID,
+		"github_app_installation_id", c.cfg.GitHubAppInstallationID)
 
 	//  If a nil httpClient is provided, a new http.Client will be used.
 	ghClient := github.NewClient(nil)
-	pk, err := keyutil.ReadRSAPrivateKey(c.cfg.GitHubAppPrivateKeyPEM)
+	ghApp, err := githubauth.NewApp(c.cfg.GitHubAppID, c.cfg.GitHubAppInstallationID, c.cfg.GitHubAppPrivateKeyPEM)
 	if err != nil {
-		return nil, fmt.Errorf("invalid private key pem: %w", err)
+		return nil, fmt.Errorf("failed to create github app: %w", err)
 	}
-	ghAppCfg := githubapp.NewConfig(c.cfg.GitHubAppID, c.cfg.GitHubAppInstallationID, pk)
-	ghApp := githubapp.New(ghAppCfg)
 
 	p := plugin.NewGitHubPlugin(ctx, ghClient, ghApp, c.cfg)
 	return p, nil
