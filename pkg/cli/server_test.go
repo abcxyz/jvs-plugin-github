@@ -76,7 +76,7 @@ func TestServerCommand(t *testing.T) {
 				"GITHUB_PLUGIN_DISPLAY_NAME": testGitHubPluginDisplayName,
 				"GITHUB_PLUGIN_HINT":         testGitHubPluginHint,
 			},
-			expErr: `failed to decode PEM formated key`,
+			expErr: `failed to parse private key`,
 		},
 	}
 

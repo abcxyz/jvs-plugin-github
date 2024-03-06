@@ -30,7 +30,7 @@ import (
 	"github.com/google/go-github/v55/github"
 
 	"github.com/abcxyz/jvs-plugin-github/pkg/plugin/keyutil"
-	"github.com/abcxyz/pkg/githubapp"
+	"github.com/abcxyz/pkg/githubauth"
 	"github.com/abcxyz/pkg/testutil"
 )
 
@@ -181,12 +181,14 @@ func TestMatchIssue(t *testing.T) {
 			hc := newTestServer(t, testHandleIssueReturn(t, tc.issueBytes))
 			testGitHubClient := github.NewClient(hc)
 
-			ghAppOpts := []githubapp.ConfigOption{
-				githubapp.WithJWTTokenCaching(1 * time.Minute),
-				githubapp.WithAccessTokenURLPattern(fakeTokenServer.URL + "/%s/access_tokens"),
+			ghAppOpts := []githubauth.Option{
+				githubauth.WithJWTTokenCaching(1 * time.Minute),
+				githubauth.WithAccessTokenURLPattern(fakeTokenServer.URL + "/%s/access_tokens"),
 			}
-			testGHAppCfg := githubapp.NewConfig(tc.cfg.GitHubAppID, tc.cfg.GitHubAppInstallationID, testPrivateKey, ghAppOpts...)
-			testGitHubApp := githubapp.New(testGHAppCfg)
+			testGitHubApp, err := githubauth.NewApp(tc.cfg.GitHubAppID, tc.cfg.GitHubAppInstallationID, testPrivateKey, ghAppOpts...)
+			if err != nil {
+				t.Fatal(err)
+			}
 
 			validator := NewValidator(testGitHubClient, testGitHubApp)
 			gotPluginGitHubIssue, gotErr := validator.MatchIssue(ctx, tc.issueURL)

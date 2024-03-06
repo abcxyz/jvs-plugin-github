@@ -16,7 +16,6 @@ package plugin
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -26,7 +25,7 @@ import (
 
 	"github.com/google/go-github/v55/github"
 
-	"github.com/abcxyz/pkg/githubapp"
+	"github.com/abcxyz/pkg/githubauth"
 )
 
 const (
@@ -36,7 +35,7 @@ const (
 // Validator validates github issue against validation criteria.
 type Validator struct {
 	client    *github.Client
-	githubApp *githubapp.GitHubApp
+	githubApp *githubauth.App
 }
 
 // ExchangeResponse is the GitHub API response of requesting an access token
@@ -54,7 +53,7 @@ type pluginGitHubIssue struct {
 }
 
 // NewValidator creates a validator.
-func NewValidator(ghClinet *github.Client, ghApp *githubapp.GitHubApp) *Validator {
+func NewValidator(ghClinet *github.Client, ghApp *githubauth.App) *Validator {
 	return &Validator{
 		client:    ghClinet,
 		githubApp: ghApp,
@@ -99,7 +98,7 @@ func (v *Validator) validateIssue(ctx context.Context, pi *pluginGitHubIssue) er
 // getAccessToken gets an access token with issue read permission to the repo
 // which contains the issue.
 func (v *Validator) getAccessToken(ctx context.Context, repoName string) (string, error) {
-	tr := &githubapp.TokenRequest{
+	tr := &githubauth.TokenRequest{
 		Repositories: []string{repoName},
 		Permissions: map[string]string{
 			"issues": "read",
@@ -110,12 +109,7 @@ func (v *Validator) getAccessToken(ctx context.Context, repoName string) (string
 	if err != nil {
 		return "", fmt.Errorf("failed to get access token: %w", err)
 	}
-
-	var tokenResp ExchangeResponse
-	if err := json.Unmarshal([]byte(resp), &tokenResp); err != nil {
-		return "", fmt.Errorf("error unmarshal resp: %w", err)
-	}
-	return tokenResp.AccessToken, nil
+	return resp, nil
 }
 
 // parseIssueInfoFromURL parses pluginGitHubIssue from Issue URL.

@@ -25,7 +25,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	jvspb "github.com/abcxyz/jvs/apis/v0"
-	"github.com/abcxyz/pkg/githubapp"
+	"github.com/abcxyz/pkg/githubauth"
 )
 
 const (
@@ -53,7 +53,7 @@ type GitHubPlugin struct {
 }
 
 // NewGitHubPlugin creates a new GitHubPlugin.
-func NewGitHubPlugin(ctx context.Context, ghClient *github.Client, ghApp *githubapp.GitHubApp, cfg *PluginConfig) *GitHubPlugin {
+func NewGitHubPlugin(ctx context.Context, ghClient *github.Client, ghApp *githubauth.App, cfg *PluginConfig) *GitHubPlugin {
 	return &GitHubPlugin{
 		validator: NewValidator(ghClient, ghApp),
 		uiData: &jvspb.UIData{
