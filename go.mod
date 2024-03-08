@@ -10,7 +10,7 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/google/go-github/v55 v55.0.0
 	github.com/hashicorp/go-plugin v1.6.0
-	github.com/lestrrat-go/jwx/v2 v2.0.20
+	github.com/lestrrat-go/jwx/v2 v2.0.21
 	google.golang.org/grpc v1.62.1
 )
 
@@ -27,7 +27,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.2 // indirect
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
-	github.com/lestrrat-go/httprc v1.0.4 // indirect
+	github.com/lestrrat-go/httprc v1.0.5 // indirect
 	github.com/lestrrat-go/iter v1.0.2 // indirect
 	github.com/lestrrat-go/option v1.0.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
