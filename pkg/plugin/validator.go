@@ -71,14 +71,14 @@ func (v *Validator) MatchIssue(ctx context.Context, issueURL string) (*pluginGit
 	if err != nil {
 		return nil, fmt.Errorf("failed to get access token: %w", err)
 	}
-	v.client = v.client.WithAuthToken(t)
+	c := v.client.WithAuthToken(t)
 
-	return info, v.validateIssue(ctx, info)
+	return info, validateIssue(ctx, c, info)
 }
 
 // validateIssue verifies if the issue exists and the issue is open.
-func (v *Validator) validateIssue(ctx context.Context, pi *pluginGitHubIssue) error {
-	issue, resp, err := v.client.Issues.Get(ctx, pi.Owner, pi.RepoName, pi.IssueNumber)
+func validateIssue(ctx context.Context, c *github.Client, pi *pluginGitHubIssue) error {
+	issue, resp, err := c.Issues.Get(ctx, pi.Owner, pi.RepoName, pi.IssueNumber)
 	if err != nil {
 		// When the issue doesn't not exist, github rest api will return a 404
 		// all other non-200 status code will be treated as internal error.
