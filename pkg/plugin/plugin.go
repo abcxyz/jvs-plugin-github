@@ -65,11 +65,11 @@ func NewGitHubPlugin(ctx context.Context, ghClient *github.Client, ghApp *github
 
 // Validate returns the validation result.
 func (g *GitHubPlugin) Validate(ctx context.Context, req *jvspb.ValidateJustificationRequest) (*jvspb.ValidateJustificationResponse, error) {
-	if got, want := req.Justification.Category, githubCategory; got != want {
+	if got, want := req.GetJustification().GetCategory(), githubCategory; got != want {
 		return generateInvalidErrResq(fmt.Sprintf("failed to perform validation, expected category %q to be %q", got, want)), nil
 	}
 
-	info, err := g.validator.MatchIssue(ctx, req.Justification.Value)
+	info, err := g.validator.MatchIssue(ctx, req.GetJustification().GetValue())
 	if err != nil {
 		if errors.Is(err, errInvalidJustification) {
 			return generateInvalidErrResq(err.Error()), nil
@@ -80,7 +80,7 @@ func (g *GitHubPlugin) Validate(ctx context.Context, req *jvspb.ValidateJustific
 	return &jvspb.ValidateJustificationResponse{
 		Valid: true,
 		Annotation: map[string]string{
-			respAnnotationKeyIssueURL:    req.Justification.Value,
+			respAnnotationKeyIssueURL:    req.GetJustification().GetValue(),
 			respAnnotationKeyIssueOwner:  info.Owner,
 			respAnnotationKeyIssueRepo:   info.RepoName,
 			respAnnotationKeyIssueNumber: strconv.Itoa(info.IssueNumber),
