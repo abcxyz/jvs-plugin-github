@@ -37,6 +37,10 @@ type PluginConfig struct {
 
 	// GitHubPluginHint is for what value to put as the justification.
 	GitHubPluginHint string
+
+	// GitHubAPIBaseURL is the base URL, primarily used for overriding during
+	// testing and for custom GHES installations.
+	GitHubAPIBaseURL string
 }
 
 // Validate validates if the config is valid.
@@ -56,6 +60,9 @@ func (cfg *PluginConfig) Validate() error {
 	}
 	if cfg.GitHubPluginHint == "" {
 		rErr = errors.Join(rErr, fmt.Errorf("GITHUB_PLUGIN_HINT is empty"))
+	}
+	if cfg.GitHubAPIBaseURL == "" {
+		cfg.GitHubAPIBaseURL = "https://api.github.com"
 	}
 
 	return rErr
@@ -101,6 +108,13 @@ func (cfg *PluginConfig) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		Target: &cfg.GitHubPluginHint,
 		EnvVar: "GITHUB_PLUGIN_HINT",
 		Usage:  "Hint for what value to put as the justification.",
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "github-api-base-url",
+		Target: &cfg.GitHubAPIBaseURL,
+		EnvVar: "GITHUB_API_BASE_URL",
+		Usage:  "Full URL, including the protocol for the API base to the GitHub server.",
 	})
 
 	return set
