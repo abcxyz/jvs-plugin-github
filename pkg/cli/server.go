@@ -93,11 +93,17 @@ func (c *ServerCommand) RunUnstarted(ctx context.Context, args []string) (*plugi
 
 	//  If a nil httpClient is provided, a new http.Client will be used.
 	ghClient := github.NewClient(nil)
-	ghApp, err := githubauth.NewApp(c.cfg.GitHubAppID, c.cfg.GitHubAppInstallationID, c.cfg.GitHubAppPrivateKeyPEM)
+	ghApp, err := githubauth.NewApp(c.cfg.GitHubAppID, c.cfg.GitHubAppPrivateKeyPEM,
+		githubauth.WithBaseURL(c.cfg.GitHubAPIBaseURL))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create github app: %w", err)
 	}
 
-	p := plugin.NewGitHubPlugin(ctx, ghClient, ghApp, c.cfg)
+	ghInstall, err := ghApp.InstallationForID(ctx, c.cfg.GitHubAppInstallationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get github installation: %w", err)
+	}
+
+	p := plugin.NewGitHubPlugin(ctx, ghClient, ghInstall, c.cfg)
 	return p, nil
 }

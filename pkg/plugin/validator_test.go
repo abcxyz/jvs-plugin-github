@@ -22,9 +22,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-github/v55/github"
@@ -46,11 +44,8 @@ const (
 func TestMatchIssue(t *testing.T) {
 	t.Parallel()
 
-	testRSAPrivateKeyString, testPrivateKey := keyutil.TestGenerateRSAPrivateKey(t)
-
 	cases := []struct {
 		name                    string
-		cfg                     *PluginConfig
 		issueURL                string
 		issueBytes              []byte
 		fakeTokenServerResqCode int
@@ -60,13 +55,8 @@ func TestMatchIssue(t *testing.T) {
 		isInvalidJustificationErr bool
 	}{
 		{
-			name:     "success",
-			issueURL: fmt.Sprintf("%s/%s/%s/issues/%v", issueURLHost, testIssueOwner, testIssueRepoName, testExistIssueNumber),
-			cfg: &PluginConfig{
-				GitHubAppID:             "test-github-id",
-				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
-			},
+			name:                    "success",
+			issueURL:                fmt.Sprintf("%s/%s/%s/issues/%v", issueURLHost, testIssueOwner, testIssueRepoName, testExistIssueNumber),
 			fakeTokenServerResqCode: http.StatusCreated,
 			issueBytes:              []byte(`{"state": "open"}`),
 			wantPluginGitHubIssue: &pluginGitHubIssue{
@@ -76,52 +66,32 @@ func TestMatchIssue(t *testing.T) {
 			},
 		},
 		{
-			name:     "invalid_issue_url",
-			issueURL: fmt.Sprintf("%s/%s/%s", issueURLHost, testIssueOwner, testIssueRepoName),
-			cfg: &PluginConfig{
-				GitHubAppID:             "test-github-id",
-				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
-			},
+			name:                      "invalid_issue_url",
+			issueURL:                  fmt.Sprintf("%s/%s/%s", issueURLHost, testIssueOwner, testIssueRepoName),
 			fakeTokenServerResqCode:   http.StatusCreated,
 			wantErrSubstr:             "invalid issue url",
 			isInvalidJustificationErr: true,
 			issueBytes:                []byte(`{"state": "open"}`),
 		},
 		{
-			name:     "issue_not_int",
-			issueURL: fmt.Sprintf("%s/%s/%s/issues/%s", issueURLHost, testIssueOwner, testIssueRepoName, "abc"),
-			cfg: &PluginConfig{
-				GitHubAppID:             "test-github-id",
-				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
-			},
+			name:                      "issue_not_int",
+			issueURL:                  fmt.Sprintf("%s/%s/%s/issues/%s", issueURLHost, testIssueOwner, testIssueRepoName, "abc"),
 			fakeTokenServerResqCode:   http.StatusCreated,
 			wantErrSubstr:             "invalid issue url, issueURL doesn't match pattern",
 			isInvalidJustificationErr: true,
 			issueBytes:                []byte(`{"state": "open"}`),
 		},
 		{
-			name:     "unauthorized",
-			issueURL: fmt.Sprintf("%s/%s/%s/issues/%v", issueURLHost, testIssueOwner, testIssueRepoName, testExistIssueNumber),
-			cfg: &PluginConfig{
-				GitHubAppID:             "test-github-id",
-				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
-			},
+			name:                      "unauthorized",
+			issueURL:                  fmt.Sprintf("%s/%s/%s/issues/%v", issueURLHost, testIssueOwner, testIssueRepoName, testExistIssueNumber),
 			fakeTokenServerResqCode:   http.StatusUnauthorized,
 			wantErrSubstr:             "failed to get access token",
 			isInvalidJustificationErr: false,
 			issueBytes:                []byte(`{"state": "open"}`),
 		},
 		{
-			name:     "issue_not_open",
-			issueURL: fmt.Sprintf("%s/%s/%s/issues/%v", issueURLHost, testIssueOwner, testIssueRepoName, testExistIssueNumber),
-			cfg: &PluginConfig{
-				GitHubAppID:             "test-github-id",
-				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
-			},
+			name:                      "issue_not_open",
+			issueURL:                  fmt.Sprintf("%s/%s/%s/issues/%v", issueURLHost, testIssueOwner, testIssueRepoName, testExistIssueNumber),
 			fakeTokenServerResqCode:   http.StatusCreated,
 			wantErrSubstr:             "issue is in state: closed",
 			isInvalidJustificationErr: true,
@@ -133,13 +103,8 @@ func TestMatchIssue(t *testing.T) {
 			},
 		},
 		{
-			name:     "issue_not_exist",
-			issueURL: fmt.Sprintf("%s/%s/%s/issues/%v", issueURLHost, testIssueOwner, testIssueRepoName, testNonExistIssueNumber),
-			cfg: &PluginConfig{
-				GitHubAppID:             "test-github-id",
-				GitHubAppInstallationID: "test-install-id",
-				GitHubAppPrivateKeyPEM:  testRSAPrivateKeyString,
-			},
+			name:                      "issue_not_exist",
+			issueURL:                  fmt.Sprintf("%s/%s/%s/issues/%v", issueURLHost, testIssueOwner, testIssueRepoName, testNonExistIssueNumber),
 			fakeTokenServerResqCode:   http.StatusCreated,
 			wantErrSubstr:             "issue not found",
 			isInvalidJustificationErr: true,
@@ -154,43 +119,44 @@ func TestMatchIssue(t *testing.T) {
 
 	for _, tc := range cases {
 		tc := tc
-		ctx := context.Background()
 
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			fakeTokenServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Header.Get("Accept") != "application/vnd.github+json" {
-					w.WriteHeader(500)
-					fmt.Fprintf(w, "missing accept header")
-					return
-				}
-				authHeader := r.Header.Get("Authorization")
-				if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-					w.WriteHeader(http.StatusInternalServerError)
-					fmt.Fprintf(w, "missing or malformed authorization header")
-					return
-				}
-				w.WriteHeader(tc.fakeTokenServerResqCode)
-				fmt.Fprintf(w, `{"token":"this-is-the-token-from-github"}`)
-			}))
+			ctx := context.Background()
+
+			fakeGitHub := func() *httptest.Server {
+				mux := http.NewServeMux()
+				mux.Handle("GET /app/installations/123", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					fmt.Fprintf(w, `{"access_tokens_url": "http://%s/app/installations/123/access_tokens"}`, r.Host)
+				}))
+				mux.Handle("POST /app/installations/123/access_tokens", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(tc.fakeTokenServerResqCode)
+					fmt.Fprintf(w, `{"token": "this-is-the-token-from-github"}`)
+				}))
+				return httptest.NewServer(mux)
+			}()
 			t.Cleanup(func() {
-				fakeTokenServer.Close()
+				fakeGitHub.Close()
 			})
+
+			_, testPrivateKey := keyutil.TestGenerateRSAPrivateKey(t)
 
 			hc := newTestServer(t, testHandleIssueReturn(t, tc.issueBytes))
 			testGitHubClient := github.NewClient(hc)
 
-			ghAppOpts := []githubauth.Option{
-				githubauth.WithJWTTokenCaching(1 * time.Minute),
-				githubauth.WithAccessTokenURLPattern(fakeTokenServer.URL + "/%s/access_tokens"),
-			}
-			testGitHubApp, err := githubauth.NewApp(tc.cfg.GitHubAppID, tc.cfg.GitHubAppInstallationID, testPrivateKey, ghAppOpts...)
+			testGitHubApp, err := githubauth.NewApp("my-app", testPrivateKey,
+				githubauth.WithBaseURL(fakeGitHub.URL))
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			validator := NewValidator(testGitHubClient, testGitHubApp)
+			installation, err := testGitHubApp.InstallationForID(ctx, "123")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			validator := NewValidator(testGitHubClient, installation)
 			gotPluginGitHubIssue, gotErr := validator.MatchIssue(ctx, tc.issueURL)
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)

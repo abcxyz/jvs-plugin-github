@@ -53,9 +53,9 @@ type GitHubPlugin struct {
 }
 
 // NewGitHubPlugin creates a new GitHubPlugin.
-func NewGitHubPlugin(ctx context.Context, ghClient *github.Client, ghApp *githubauth.App, cfg *PluginConfig) *GitHubPlugin {
+func NewGitHubPlugin(ctx context.Context, ghClient *github.Client, ghInstall *githubauth.AppInstallation, cfg *PluginConfig) *GitHubPlugin {
 	return &GitHubPlugin{
-		validator: NewValidator(ghClient, ghApp),
+		validator: NewValidator(ghClient, ghInstall),
 		uiData: &jvspb.UIData{
 			DisplayName: cfg.GitHubPluginDisplayName,
 			Hint:        cfg.GitHubPluginHint,

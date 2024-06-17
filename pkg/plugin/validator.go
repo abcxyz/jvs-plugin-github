@@ -34,8 +34,8 @@ const (
 
 // Validator validates github issue against validation criteria.
 type Validator struct {
-	client    *github.Client
-	githubApp *githubauth.App
+	client             *github.Client
+	githubInstallation *githubauth.AppInstallation
 }
 
 // ExchangeResponse is the GitHub API response of requesting an access token
@@ -53,10 +53,10 @@ type pluginGitHubIssue struct {
 }
 
 // NewValidator creates a validator.
-func NewValidator(ghClinet *github.Client, ghApp *githubauth.App) *Validator {
+func NewValidator(ghClinet *github.Client, ghInstall *githubauth.AppInstallation) *Validator {
 	return &Validator{
-		client:    ghClinet,
-		githubApp: ghApp,
+		client:             ghClinet,
+		githubInstallation: ghInstall,
 	}
 }
 
@@ -105,7 +105,7 @@ func (v *Validator) getAccessToken(ctx context.Context, repoName string) (string
 		},
 	}
 
-	resp, err := v.githubApp.AccessToken(ctx, tr)
+	resp, err := v.githubInstallation.AccessToken(ctx, tr)
 	if err != nil {
 		return "", fmt.Errorf("failed to get access token: %w", err)
 	}
