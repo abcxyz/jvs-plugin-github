@@ -11,7 +11,7 @@ require (
 	github.com/google/go-github/v55 v55.0.0
 	github.com/hashicorp/go-plugin v1.6.1
 	github.com/lestrrat-go/jwx/v2 v2.0.21
-	google.golang.org/grpc v1.64.0
+	google.golang.org/grpc v1.64.1
 )
 
 require (
