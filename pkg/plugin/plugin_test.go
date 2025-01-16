@@ -127,7 +127,6 @@ func TestValidate(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		ctx := context.Background()
 
 		t.Run(tc.name, func(t *testing.T) {
@@ -138,7 +137,7 @@ func TestValidate(t *testing.T) {
 			}
 			gotResq, gotErr := p.Validate(ctx, tc.req)
 			if diff := testutil.DiffErrString(gotErr, tc.wantErr); diff != "" {
-				t.Errorf(diff)
+				t.Error(diff)
 			}
 			if diff := cmp.Diff(tc.wantResq, gotResq, cmpopts.IgnoreUnexported(jvspb.ValidateJustificationResponse{})); diff != "" {
 				t.Errorf("Failed validation (-want,+got):\n%s", diff)
