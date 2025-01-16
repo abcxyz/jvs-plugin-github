@@ -80,8 +80,6 @@ func TestPluginConfig_ToFlags(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
-
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -176,14 +174,12 @@ func TestPluginConfig_Validate(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
-
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			err := tc.cfg.Validate()
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
-				t.Errorf(diff)
+				t.Error(diff)
 			}
 		})
 	}

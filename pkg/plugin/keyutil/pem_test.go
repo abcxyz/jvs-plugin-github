@@ -47,15 +47,13 @@ func TestReadRSAPrivateKey(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
-
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			gotPK, err := ReadRSAPrivateKey(tc.pkPEMString)
 
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
-				t.Errorf(diff)
+				t.Error(diff)
 			}
 			// if gotPK and wantPK are both nil, no check is needed.
 			if !(gotPK == nil && tc.wantPK == nil) {

@@ -74,7 +74,7 @@ func (g *GitHubPlugin) Validate(ctx context.Context, req *jvspb.ValidateJustific
 		if errors.Is(err, errInvalidJustification) {
 			return generateInvalidErrResq(err.Error()), nil
 		} else {
-			return nil, status.Errorf(codes.Internal, err.Error())
+			return nil, status.Error(codes.Internal, err.Error())
 		}
 	}
 	return &jvspb.ValidateJustificationResponse{
