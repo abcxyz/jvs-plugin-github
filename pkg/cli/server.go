@@ -93,7 +93,12 @@ func (c *ServerCommand) RunUnstarted(ctx context.Context, args []string) (*plugi
 
 	//  If a nil httpClient is provided, a new http.Client will be used.
 	ghClient := github.NewClient(nil)
-	ghApp, err := githubauth.NewApp(c.cfg.GitHubAppID, c.cfg.GitHubAppPrivateKeyPEM,
+
+	signer, err := githubauth.NewPrivateKeySigner(c.cfg.GitHubAppPrivateKeyPEM)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse private key: %w", err)
+	}
+	ghApp, err := githubauth.NewApp(c.cfg.GitHubAppID, signer,
 		githubauth.WithBaseURL(c.cfg.GitHubAPIBaseURL))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create github app: %w", err)
