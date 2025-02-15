@@ -127,7 +127,7 @@ func TestValidate(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		ctx := context.Background()
+		ctx := t.Context()
 
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -148,7 +148,7 @@ func TestValidate(t *testing.T) {
 
 func TestGetUIData(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	uiData := &jvspb.UIData{
 		DisplayName: testGitHubPluginDisplayName,

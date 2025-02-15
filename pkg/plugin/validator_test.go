@@ -15,7 +15,6 @@
 package plugin
 
 import (
-	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -121,7 +120,7 @@ func TestMatchIssue(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			fakeGitHub := func() *httptest.Server {
 				mux := http.NewServeMux()
