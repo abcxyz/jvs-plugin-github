@@ -37,7 +37,7 @@ func TestServerCommand(t *testing.T) {
 
 	testRSAPrivateKeyString, _ := keyutil.TestGenerateRSAPrivateKey(t)
 
-	ctx := logging.WithLogger(context.Background(), logging.TestLogger(t))
+	ctx := logging.WithLogger(t.Context(), logging.TestLogger(t))
 
 	fakeGitHub := func() *httptest.Server {
 		mux := http.NewServeMux()
