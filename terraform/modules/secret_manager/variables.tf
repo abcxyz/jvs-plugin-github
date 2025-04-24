@@ -31,7 +31,7 @@ variable "gh_pk_accessor_members_map" {
     This is a map so when terraform won't complain when values are derived from resource
     attributes that cannot be determined until apply.
   EOT
-  type = map(string)
+  type        = map(string)
 }
 
 variable "gh_private_key_secret_id" {
