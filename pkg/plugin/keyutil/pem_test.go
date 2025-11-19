@@ -56,7 +56,7 @@ func TestReadRSAPrivateKey(t *testing.T) {
 				t.Error(diff)
 			}
 			// if gotPK and wantPK are both nil, no check is needed.
-			if !(gotPK == nil && tc.wantPK == nil) {
+			if gotPK != nil || tc.wantPK != nil {
 				// if they are both not nil, compare them.
 				if gotPK != nil && tc.wantPK != nil {
 					if diff := cmp.Diff(gotPK, tc.wantPK); diff != "" {
